@@ -31,7 +31,13 @@ A file called samples.csv must also be present in the working directory for the 
 
 ## Experimental Design and DESeq2
 
+Three R Packages are required for this program: DESeq2, tximport, and knitr. Ensure these packages and all their dependencies are installed. 
+
+The first chunk of code in each program constructs several accessory objects to feed into the DESeq2 analysis, including a list of the files named according to their replicate number and type, a factor vector summarizing of the different conditions present, and a data frame associated the conditions with the replicate numbers and type (essentially the last two columns of the samples.csv file). The tximport package is used to read in the counts files for DESeq2 analysis, and then DESeq2 is run, creating the object named "dds". The final line of the chunk outputs a csv file of the general counts table produced by DESeq2. 
+
 ## PCA Plot
+
+
 
 ## MA Plots
 
