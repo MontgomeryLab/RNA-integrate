@@ -8,6 +8,8 @@ Dr. Taiowa Montgomery and Mr. Spencer Kuhn - Colorado State University RNA Biolo
 
 [File Uploads and Samples csv](#File-Uploads-and-Samples-csv)
 
+[Required Packages](#Required-Packages)
+
 [Experimental Design and DESeq2](#Experimental-Design-and-DESeq2)
 
 [PCA Plot](#PCA-Plot)
@@ -29,9 +31,11 @@ Counts files must be present in the working directory of R or RStudio for the pr
 
 A file called samples.csv must also be present in the working directory for the programs to run. This file contains the experimental design information necessary for providing structure to the DESeq analysis. The first column includes the names of the files to analyze. The second column includes information on the replicate number and type for each file. For example, the first replicate of a wild type condition might be written "wt_1" in the second column. The third column of samples.csv includes the condition type for each file. For the ControlCompare program, ensure that the control condition is the first condition when listed alphabetically. For the AllCompare program, the names of each condition have no restrictions. An example of a samples.csv file can be seen here
 
-## Experimental Design and DESeq2
+## Required Packages
 
-Three R Packages are required for this program: DESeq2, tximport, and knitr. Ensure these packages and all their dependencies are installed before proceeding. 
+Three R Packages are required for this program: DESeq2, tximport, and knitr. Ensure these packages and all their dependencies are installed before proceeding.
+
+## Experimental Design and DESeq2 
 
 In both programs, the first chunk of code following the package-calling chunk constructs several accessory objects to feed into the DESeq2 analysis, including a list of the files named according to their replicate number and type, a factor vector summarizing of the different conditions present, and a data frame associated the conditions with the replicate numbers and type (essentially the last two columns of the samples.csv file). The tximport package is used to read in the counts files for DESeq2 analysis, and then DESeq2 is run, creating the object named "dds". The final line of the chunk outputs a csv file of the general counts table produced by DESeq2. 
 
