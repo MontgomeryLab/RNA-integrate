@@ -49,7 +49,7 @@ txi.rsem$length[txi.rsem$length == 0] = 1
 
 # run DESeq and save object as dds
 
-dds = DESeqDataSetFromTximport(txi.rsem, sampleTable, ~condition)
+dds = DESeqDataSetFromTximport(txi.rsem,sampleTable,~condition)
 dds = DESeq(dds)
 
 # write csv of count data including the current date
