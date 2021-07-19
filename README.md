@@ -6,7 +6,7 @@ Dr. Taiowa Montgomery and Mr. Spencer Kuhn - Colorado State University RNA Biolo
 
 [Introduction](#Introduction)
 
-[File Uploads and Samples.csv](#File-Uploads-and-Samples.csv)
+[File Uploads and Samples csv](#File-Uploads-and-Samples-csv)
 
 [Experimental Design and DESeq2](#Experimental-Design-and-DESeq2)
 
@@ -23,7 +23,7 @@ Dr. Taiowa Montgomery and Mr. Spencer Kuhn - Colorado State University RNA Biolo
 
 The programs in this repository run high-throughput mRNA sequencing files through code wrapped around the DESeq2 R programming package for Differential Gene Expression (DGE) experiments. [AllCompare](AllCompareDESeqPipeline.Rmd) and [ControlCompare](ControlCompareDESeqPipeline.Rmd) are R Markdown programs that generate csv formatted results files from the DESeq2 analysis in addition to generating a PCA Plot, standard and Log Fold Change (LFC) shrinkage MA Plots, Intra-Condition Scatterplots for counts between samples, and Mean Reads Scatterplots of average counts across all samples between contrasting conditions. [AllCompare](AllCompareDESeqPipeline.Rmd) constructs all possible contrasts between the defined experimental conditions. For Instance, if four conditions are specified as A, B, C, and D, then results files, MA Plots, and Mean Reads Scatterplots will be created for the following contrasts: A/B, A/C, A/D, B/C, B/D, and C/D. [ControlCompare](ControlCompareDESeqPipeline.Rmd) constructs contrasts between a control condition and the remaining conditions. For Instance, if the same four conditions are specified, A, B, C, and D, then results files, MA Plots, and Mean Reads Scatterplots will be created for the following contrasts: A/B, A/C, and A/D. 
 
-## File Uploads and Samples.csv
+## File Uploads and Samples csv
 
 ## Experimental Design and DESeq2
 
