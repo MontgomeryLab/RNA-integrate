@@ -41,6 +41,8 @@ Both programs use the plotPCA function of the DESeq2 package to generate a PCA p
 
 ## MA Plots
 
+Both AllCompare and ControlCompare use a CompareMA, a function defined within the program that creates two MA Plot pdfs and produces a csv counts table for a given contrast between conditions. With the two contrasting conditions as the function inputs, CompareMA generates a results file from the dds object. This results file is used for the plotMA function from DESeq2. The first pdf consists of a standard MA plot, while the second consists of an MA plot after LFC shrinkage using the lfcShrink function from DESeq2. The LFC Shrinkage for both programs is type 'normal' and takes a contrast argument rather than a coefficient argument. AllCompare creates MA Plots for all possible contrasts given the condition set (CompareMA is called in a for loop iterating over all possible two-condition combinations), whereas ControlCompare contrasts the first condition listed alphabetically with the remaining conditions (CompareMA is called in a for loop iterating over combinations between the first alphabetical condition and the remaining conditions).
+
 ## Intra-Condition Scatterplots
 
 ## Mean Reads Scatterplots
