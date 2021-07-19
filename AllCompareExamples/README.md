@@ -1,1 +1,1 @@
-# Example Outputs AllCompare Program
+# Example Outputs for AllCompare Program
