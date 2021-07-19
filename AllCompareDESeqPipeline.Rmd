@@ -40,7 +40,7 @@ conditions_set = as.factor(samples[,3])
 # create named data frame of condition and replicate structure
 
 sampleTable = data.frame(condition = conditions_set)
-rownames(sampleTable) <- samples[,2]
+rownames(sampleTable) = samples[,2]
 
 # import files
 
