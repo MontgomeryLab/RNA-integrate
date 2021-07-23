@@ -55,7 +55,7 @@ dds = DESeq(dds)
 # write csv of count data including the current date
 
 write.csv(counts(dds,normalized=TRUE),
-          paste0(format(Sys.Date(),format = "%d_%m_%y_"),'_counts_table.csv'))
+          paste0(format(Sys.Date(),format = "%d_%m_%y_"),'counts_table.csv'))
 
 ```
 
@@ -101,15 +101,15 @@ CompareMA = function(group1,group2){
   res = results(dds,contrast=c("condition",as.character(group2),as.character(group1)))
   resOrdered = res[order(res$pvalue),]
   write.csv(resOrdered,paste0(format(Sys.Date(),format = "%d_%m_%y_"),
-                              as.character(group2),'vs',as.character(group1),'.csv'))
+                              as.character(group1),'vs',as.character(group2),'.csv'))
   pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),
-             as.character(group2),'vs',as.character(group1),'_MA.pdf'),
-      title = paste0(as.character(group2),' vs ',as.character(group1),' MA Plot'))
+             as.character(group1),'vs',as.character(group2),'_MA.pdf'),
+      title = paste0(as.character(group1),' vs ',as.character(group2),' MA Plot'))
   plotMA(res, ylim=c(-4,4),main = paste0(group1,' vs ',group2))
   dev.off()
   pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),
-             as.character(group2),'vs',as.character(group1),'_MA_shrunk.pdf'),
-      title = paste0(as.character(group2),' vs ',as.character(group1),' MA Plot (shrunk)'))
+             as.character(group1),'vs',as.character(group2),'_MA_shrunk.pdf'),
+      title = paste0(as.character(group1),' vs ',as.character(group2),' MA Plot (shrunk)'))
   resLFC = lfcShrink(dds,contrast=c("condition",as.character(group2),as.character(group1)),
                      type="normal")
   plotMA(resLFC, ylim=c(-4,4),main = paste0(group1,' vs ',group2))
@@ -146,11 +146,11 @@ MA_Files = NULL
 for (i in levels(conditions_set)[-1]) {
   MA_Files = c(MA_Files,
                paste0(format(Sys.Date(),format = "%d_%m_%y_"),
-                      as.character(i),'vs',
-                      as.character(levels(conditions_set)[1]),'_MA.pdf'),
+                      as.character(levels(conditions_set)[1]),'vs',
+                      as.character(i),'_MA.pdf'),
                paste0(format(Sys.Date(),format = "%d_%m_%y_"),
-                      as.character(i),'vs',
-                      as.character(levels(conditions_set)[1]),'_MA_shrunk.pdf'))
+                      as.character(levels(conditions_set)[1]),'vs',
+                      as.character(i),'_MA_shrunk.pdf'))
 }
 
 # Incorporate files into pdf output
@@ -242,8 +242,8 @@ mean_scatterplot = function(group1,group2){
   res = results(dds,contrast=c("condition",group2,group1))
   res_sig = as.data.frame(subset(res,padj < 0.05 & abs(log2FoldChange) > 0.378511623))
   sig_logical = rownames(cts_avg) %in% rownames(res_sig)
-  pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),group2,'vs',group1,
-             "_means_plot.pdf"),title = paste0(group2,' vs ',group1," Means Plot"))
+  pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),group1,'vs',group2,
+             "_means_plot.pdf"),title = paste0(group1,' vs ',group2," Means Plot"))
   par(mar=c(5,5,5,2))
   plot(-4:20,-4:20,tck = 0,xaxt='n',yaxt='n',type="n",
        main=paste0(group1,' vs ',group2),
@@ -296,8 +296,8 @@ Means_Scatter_Files = NULL
 for (i in levels(conditions_set)[-1]) {
   Means_Scatter_Files = c(Means_Scatter_Files,
                           paste0(format(Sys.Date(),format = "%d_%m_%y_"),
-                                 as.character(i),'vs',
-                                 as.character(levels(conditions_set)[1]),
+                                 as.character(levels(conditions_set)[1]),'vs',
+                                 as.character(i),
                                  '_means_plot.pdf'))
 }
 
