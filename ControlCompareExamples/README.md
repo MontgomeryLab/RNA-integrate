@@ -1,1 +1,1 @@
-# Control Compare Examples
+# Example Outputs for ControlCompare Program
