@@ -1,10 +1,11 @@
+
+# Read Filtering, Mapping, and Feature Counting
+
+## COMING SOON
+
 # DESeq2 Results & Graphics Wrapping Program for Differential Gene Expression
 
 Dr. Taiowa Montgomery and Mr. Spencer Kuhn - Colorado State University RNA Biology
-
-## Read Filtering, Mapping, and Feature Counting
-
-## COMING SOON
 
 ## Table of Contents
 
