@@ -5,8 +5,6 @@
 
 # DESeq2 Results & Graphics Wrapping Program for Differential Gene Expression
 
-Dr. Taiowa Montgomery and Mr. Spencer Kuhn - Colorado State University RNA Biology
-
 ## Table of Contents
 
 [Introduction](#Introduction)
@@ -34,7 +32,7 @@ The programs in this repository run high-throughput mRNA sequencing files throug
 
 Counts files from Rsem must be present in the working directory of R or RStudio for the programs to run. These files are filtered, mapped to a reference genome, and counted from fastq high-throughput sequencing files. 
 
-A file called samples.csv must also be present in the working directory for the programs to run. This file contains the experimental design information necessary for providing structure to the DESeq analysis. The first column includes the names of the files to analyze. The second column includes information on the replicate number and type for each file. For example, the first replicate of a wild type condition might be written "wt_1" in the second column. The third column of samples.csv includes the condition type for each file. For the ControlCompare program, ensure that the control condition is the first condition when listed alphabetically. For the AllCompare program, the names of each condition have no restrictions. An example of a samples.csv file can be seen here
+A file called samples.csv must also be present in the working directory for the programs to run. This file contains the experimental design information necessary for providing structure to the DESeq analysis. The first column includes the names of the files to analyze. The second column includes information on the replicate number and type for each file. For example, the first replicate of a wild type condition might be written "wt_1" in the second column. The third column of samples.csv includes the condition type for each file. For the ControlCompare program, ensure that the control condition is the first condition when listed alphabetically. For the AllCompare program, the names of each condition have no restrictions. An example of a samples.csv file can be seen [here](ExampleData/samples.csv)
 
 ## Required Packages
 
@@ -48,11 +46,15 @@ In both programs, the first chunk of code following the package-calling chunk co
 
 Both programs use the plotPCA function of the DESeq2 package to generate a PCA plot of the first two principal components for each file, colored by condition and formatted according to default ggplot arrangements. This plot is output as a pdf file with a preceding date stamp. 
 
+![PCA Plot](ControlCompareExamples/Example_PCA_plot.jpeg)
+
 ## MA Plots
 
 Both AllCompare and ControlCompare use a CompareMA, a function defined within the program that creates two MA Plot pdfs and produces a csv counts table for a given contrast between conditions. With the two contrasting conditions as the function inputs, CompareMA generates a results file from the dds object. This results file is used for the plotMA function from DESeq2. The first pdf consists of a standard MA plot, while the second consists of an MA plot after LFC shrinkage using the lfcShrink function from DESeq2. The LFC Shrinkage for both programs is type 'normal' and takes a contrast argument rather than a coefficient argument. AllCompare creates MA Plots for all possible contrasts given the condition set (CompareMA is called in a for loop iterating over all possible two-condition combinations), whereas ControlCompare contrasts the first condition listed alphabetically with the remaining conditions (CompareMA is called in a for loop iterating over combinations between the first alphabetical condition and the remaining conditions). Output pdfs have a preceding date stamp.
 
 ![A vs B MA Plot Shrunk](ControlCompareExamples/Example_AvsB_MA_shrunk.jpeg)
+
+Above: LFC Shrinkage MA Plot | Below: Standard MA Plot
 
 ![A vs B MA Plot](ControlCompareExamples/Example_AvsB_MA.jpeg)
 
@@ -60,10 +62,15 @@ Both AllCompare and ControlCompare use a CompareMA, a function defined within th
 
 AllCompare and ControlCompare both utilize a program-defined function called scatterplot_by_condition, which takes the condition set factor vector as its only input. The function iterates through every condition and produces a counts scatterplot for each combination of two intra-condition replicates. For instance, if there are two conditions, A and B, and three replicates within each condition, then six total scatterplots will be produced, with the first row of plots comparing replicates 1/2, 1/3, 2/3 for condition A and the second row comparing replicates 1/2, 1/3, and 2/3 for condition B. These scatterplots are compiled into a single pdf with a preceding date stamp. 
 
-
+![Intra-Condition Scatterplots](ControlCompareExamples/Example_scatter_plots.jpeg)
 
 ## Mean Reads Scatterplots
 
 For each condition, mean reads across all replicates are calculated in both programs by iterating through the general counts table from the dds object. Within the program, the mean_scatterplot function is defined to plot mean reads given two input conditions to contrast. Significant mean counts are separated according to adjusted p-values of < 0.05 and Log Fold Changes of greater than 0.378511623 or less than -0.378511623. These significant points are slightly larger and colored blue, whereas the remaining points are colored gray, although the colors can be changed within the Plot_Colors object. Vertical and horizontal dotted guidelines are added to the plot separating average reads greater than 10. Diagonal guidelines are also added to help delineate genes in which one condition's mean differs from the other condition's mean by a factor of two. Along the plot axes, tick marks are added according to a log2 scale, with major ticks at 1/16, 1, 16, 256, 4096, 65536, and 1,048,596. Minor ticks are added according to regular whole number intervals between major ticks, with four minor ticks within each interval. AllCompare runs this function for all two-condition combinations, whereas ControlCompare runs the function for all combinations between the control condition and the remaining conditions. Each plot is generated as a separate pdf with a preceding date stamp.
 
 ![A vs B Scatterplot](ControlCompareExamples/Example_AvsB_means_plot.jpeg)
+
+## Authors
+
+* **Dr. Taiowa Montgomery** - 05/2021-present - Colorado State University - [taimontgomery](https://github.com/taimontgomery)
+* **Spencer Kuhn** - 06/2021-present - Colorado State University - [smcguirekuhn](https://github.com/smcguirekuhn)
