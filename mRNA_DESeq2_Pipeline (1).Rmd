@@ -1,0 +1,328 @@
+---
+title: "MontgomeryDESeqPipeline"
+author: "Dr. Taiowa Montgomery, Spencer Kuhn"
+output: pdf_document
+---
+
+\center
+
+## Overview
+
+This pipeline serves to interpret DESeq2 output of mRNA DGE Experiments using a PCA plot, MA Plots for different contrasts, replicate scatter plots within each condition, and mean scatterplots for different contrasts that highlight statistically significant observations. Required packages are DESeq2, knitr, and tximport. Within the working directory, seqeuncing results files (already filtered, trimmed, and mapped to a reference genome) will need to be present in addition to a csv called 'samples.csv' with columns in the following format: "files", "replicates", "condition", and "control_condition". The first column is a list of the file names to be imported from the working directory. The second column consists of the treatment type and replicate number associated with each corresponding results file (for example, 'WT_1'). The third column consists of the generalized treatment type/condition for each file without replicate numbers (for example, simply 'WT'), and the fourth column is a logical vector (TRUE/FALSE) establishing whether or not each condition/file is a control group condition/file. The first file listed for each condition will be used to establish the control group status from the fourth column. The pipeline is generalized to a variety of experimental types. If one control group is listed, all other condition groups will be compared against the control group, with MA Plots and mean reads scatterplots drawn for each contrast between control and experimental groups. If multiple control groups are listed, or if no control group is listed, MA Plots and mean reads scatterplots will be drawn for all possible contrasts between different conditions. 
+
+```{r,echo=FALSE,include=FALSE,warning=FALSE}
+
+library(DESeq2)
+library(tximport)
+library(knitr)
+
+```
+
+## CSV Interpretation, DESeq, and Wrapped Objects for Plotting
+
+The samples table is generated from the samples.csv file in the working directory. A list of files named by their replicate number and type is created for the tximport function. The 'control_condition' object summarizes each unique condition as a control or experimental group according to a named logical vector. The DESeqDataSetFromTximport function requires a table consisting of the condition column with each row named according to the associated replicated number and type. This table is named 'sampleTable'. After tximport is run to interpret the results files, the dds object compiles the imported files and runs them through DESeq2. An overall counts table is built from dds and saved in the working directory as a csv file with a preceding date stamp. Next, the list of intended contrasts is stored in the 'Combinations' object, which is built from the information in 'control_condition'. 'Combinations' is used for the MA Plots and mean reads scatterplots. For each contrast, a counts table csv is made and saved in the working directory with a preceding date stamp. A variance-stablizing transformation is performed for the PCA plot. Finally, a table is generated compiling the log2 of average counts by gene across all replicates for each condition. Infinite values are replaced with -4. This counts table is also used for the mean reads scatterplots. 
+
+```{r,include=FALSE,results='hide',message=FALSE}
+
+# read samples information into a data frame
+
+samples = read.csv("samples.csv")
+
+# generate named list of files for tximport
+
+files = samples[,1]
+names(files) = samples[,2]
+
+# generate named 'control_condition' object and 'conditions_set' object
+
+control_condition = as.logical(samples[,4])
+conditions_set = as.factor(samples[,3])
+names(control_condition) = conditions_set
+control_condition = control_condition[unique(names(control_condition))]
+
+# create named data frame of condition and replicate structure
+
+sampleTable = data.frame(condition = conditions_set)
+rownames(sampleTable) = samples[,2]
+
+# import files
+
+txi.rsem = tximport(files, type = "rsem", txIn = FALSE, txOut = FALSE)
+txi.rsem$length[txi.rsem$length == 0] = 1
+
+# run DESeq and save object as dds
+
+dds = DESeqDataSetFromTximport(txi.rsem,sampleTable,~condition)
+dds = DESeq(dds)
+
+# write counts table csv with preceding date stamp
+
+write.csv(counts(dds,normalized=TRUE),
+          paste0(format(Sys.Date(),format = "%d_%m_%y_"),'counts_table.csv'))
+
+# CombinationCvR Function:
+# Generates list of contrasts between control and experimental groups
+
+CombinationCvR = function(control){
+  rbind(rep(as.character(control),length(levels(conditions_set))-1),
+        levels(conditions_set)[-which(levels(conditions_set) == as.character(control))])
+}
+
+# use control_condition vector to establish appropriate list of contrasts
+
+if (all(!control_condition) | sum(control_condition > 1)) {
+  Combinations = combn(levels(conditions_set),2)
+} else {
+  Combinations = CombinationCvR(names(which(control_condition == TRUE)))
+}
+
+# generate csv counts table for each contrast listed in 'Combinations'
+
+for (i in 1:length(Combinations[1,])){
+  res = results(dds,contrast=c("condition",as.character(Combinations[1,i]),
+                               as.character(Combinations[2,i])))
+  resOrdered = res[order(res$pvalue),]
+  write.csv(resOrdered,paste0(format(Sys.Date(),format = "%d_%m_%y_"),
+                            as.character(Combinations[2,i]),'_vs_',
+                            as.character(Combinations[1,i]),'.csv'))
+}
+
+# conduct variance-stabilizing transformation
+
+vsd = vst(dds, blind = FALSE)
+
+# produce average counts table across replicates of each condition
+
+cts = counts(dds, normalized=TRUE)
+cts_avg = NULL
+for (i in levels(conditions_set)) {
+  cts_avg = cbind(cts_avg,
+                  log2(rowMeans(cts[,samples[,2][samples[,3] == i]])))
+}
+
+# replace infinite values with -4
+
+cts_avg = replace(cts_avg,cts_avg=='-Inf',-4)
+
+# name columns of average counts table and add feature type column
+
+colnames(cts_avg) = levels(conditions_set)
+
+```
+
+\newpage
+
+## PCA Plot
+
+A variance stabilizing transformation is conducted on the DESeq object and then a plot is created for the first two principal components. The output is a PDF file labeled with a preceding date stamp.
+
+```{r,include=FALSE,message=FALSE}
+
+# create PCA plot file including current date
+
+pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),"PCA_plot.pdf"),title = "PCA Plot")
+plotPCA(vsd, intgroup="condition")
+dev.off()
+
+```
+
+```{r,echo=FALSE,out.height="75%",out.width="75%",fig.align="center"}
+
+# Incorporate file into pdf output
+
+include_graphics(paste0(format(Sys.Date(),format = "%d_%m_%y_"),"PCA_plot.pdf"))
+
+```
+
+\newpage
+
+## MA Plots
+
+Two MA plots are created for each intended contrast/combination based on the samples.csv file. The first MA Plot draws from the DESeq results file for the appropriate contrast, and the second MA plot transforms the general DESeq object with log2 fold change shrinkage before plotting. Output files are labeled by contrast with a preceding date stamp.
+
+```{r,include=FALSE,message=FALSE}
+
+# MA Plotting Function: uses results file from DESeq 
+# Compares the two function inputs against each other
+
+CompareMA = function(group1,group2){
+  res = results(dds,contrast=c("condition",as.character(group2),as.character(group1)))
+  pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),
+             as.character(group2),'_vs_',as.character(group1),'_MA.pdf'),
+      title = paste0(as.character(group2),' vs ',as.character(group1),' MA Plot'))
+  plotMA(res, ylim=c(-4,4),main = paste0(group2,' vs ',group1))
+  dev.off()
+  pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),
+             as.character(group2),'_vs_',as.character(group1),'_MA_shrunk.pdf'),
+      title = paste0(as.character(group2),' vs ',as.character(group1),' MA Plot (shrunk)'))
+  resLFC = lfcShrink(dds,contrast=c("condition",as.character(group2),as.character(group1)),
+                     type="normal")
+  plotMA(resLFC, ylim=c(-4,4),main = paste0(group2,' vs ',group1))
+  dev.off()
+}
+
+# produce pdf files of each MA plot given the set of combinations
+
+for (i in 1:length(Combinations[1,])){
+  CompareMA(Combinations[1,i],Combinations[2,i])
+}
+
+```
+
+\newpage
+
+```{r,echo=FALSE,out.height="30%",out.width="50%",fig.align="center",fig.show="hold"}
+
+# Create list of file names to incorporate into the pdf output
+
+MA_Files = NULL
+for (i in 1:length(Combinations[1,])) {
+  MA_Files = c(MA_Files,
+               paste0(format(Sys.Date(),format = "%d_%m_%y_"),
+                      as.character(Combinations[2,i]),'_vs_',
+                      as.character(Combinations[1,i]),'_MA.pdf'),
+               paste0(format(Sys.Date(),format = "%d_%m_%y_"),
+                      as.character(Combinations[2,i]),'_vs_',
+                      as.character(Combinations[1,i]),'_MA_shrunk.pdf'))
+}
+
+# Incorporate files into pdf output
+
+include_graphics(MA_Files)
+
+```
+
+\newpage
+
+## Intra-Condition Scatterplot
+
+Multiple scatterplots are created comparing the normalized counts of one sample/replicate in a particular condition to the normalized counts of another sample/replicate in that same condition. Plots are created for each condition in the experiment. The scatterplots are placed into a single PDF with a preceding date stamp. 
+
+```{r,include=FALSE}
+
+# Scatterplot Generator Function: 
+# Creates set of all replicate pairs within each condition 
+# Plots normalized counts for each pair, as provided by the general dds object
+
+scatterplot_by_condition = function(condition_set){
+  combinations = NULL
+  for (i in levels(as.factor(condition_set))){
+    columns = c(samples[which(samples[,3] == as.character(i)),2])
+    combinations = cbind(combinations,combn(columns,2))
+  }
+  par(mfrow=c(4,3),mar = c(4, 1, 1, 1), mgp = c(2, 0.5, 0),pty="s")
+  for (i in 1:length(combinations[1,])){
+    plot(log2(1+counts(dds,normalized=TRUE)[,c(combinations[1,i],combinations[2,i])]),
+         col="#00000020",pch=19,cex=0.3)
+  }
+}
+
+# generate scatterplot pdf (large file around 11 MB) including current date
+
+pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),"scatter_plots.pdf"),
+    title = "Intra-Condition Scatterplots")
+scatterplot_by_condition(conditions_set)
+dev.off()
+
+```
+
+```{r,echo=FALSE,out.height="75%",out.width="75%",fig.align="center"}
+
+# Incorporate file into pdf output
+
+include_graphics(paste0(format(Sys.Date(),format = "%d_%m_%y_"),"scatter_plots.pdf"))
+
+```
+
+\newpage
+
+## Mean Reads Scatterplots
+
+The scatterplots below graph average counts of all genes (across biological replicates) for one condition against the average counts for another condition according to the previous set of contrasts generated for the MA Plots. From a results object for a single contrast, significant data points are distinguished based on adjusted p-values of less than 0.05 and a log2 fold change greater than 0.378511623 or less than -0.378511623. The scatterplot then colors the average counts by gene based on these significance qualifications, with blue points corresponding to significant data points and gray points corresponding to insignificant data points. Diagonal guide lines are added with intercepts -1, 0, and 1. Axes are on a log2 scale, with four minor tick marks spaced at even numeric intervals between each major tick mark. Vertical and horizontal axes both range from 1/16 to 1,048,576, with each major tick mark representing a sixteen-fold increase from the previous tick mark. The output PDF files are labeled by contrast with a preceding date stamp. 
+
+```{r,include=FALSE,message=FALSE}
+
+# Mean Reads Scatterplot Generator Function: 
+# Uses results files from general DESeq object 
+# Isolates significant data points based p-values and fold change
+
+Plot_Colors = c("lightgray","deepskyblue3")
+
+mean_scatterplot = function(group1,group2){
+  group1 = as.character(group1)
+  group2 = as.character(group2)
+  res = results(dds,contrast=c("condition",group2,group1))
+  res_sig = as.data.frame(subset(res,padj < 0.05 & abs(log2FoldChange) > 0.378511623))
+  sig_logical = rownames(cts_avg) %in% rownames(res_sig)
+  pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),group2,'_vs_',group1,
+             "_means_plot.pdf"),title = paste0(group2,' vs ',group1," Means Plot"))
+  par(mar=c(5,5,5,2))
+  plot(-4:20,-4:20,tck = 0,xaxt='n',yaxt='n',type="n",
+       main=paste0(group2,' vs ',group1),
+       xlab=paste0('Average reads in ',group1),
+       ylab=paste0('Average reads in ',group2),
+       font.lab=2,las = "1",tcl = -.3,cex.lab = 1.5,
+       cex.lab = 1.5,cex.main = 2,cex.axis = 2)
+  tick_sep = seq(-4,20,0.8)
+  tick_sep = 2^tick_sep
+  tick_sep[1:6] = seq(tick_sep[1],tick_sep[6],length.out = 6)
+  tick_sep[6:11] = seq(tick_sep[6],tick_sep[11],length.out = 6)
+  tick_sep[11:16] = seq(tick_sep[11],tick_sep[16],length.out = 6)
+  tick_sep[16:21] = seq(tick_sep[16],tick_sep[21],length.out = 6)
+  tick_sep[21:26] = seq(tick_sep[21],tick_sep[26],length.out = 6)
+  tick_sep[26:31] = seq(tick_sep[26],tick_sep[31],length.out = 6)
+  axis(1,at=log2(tick_sep[seq(1,31,5)]),
+       labels=prettyNum(tick_sep[seq(1,31,5)],
+                        digits=2,format="f"),las=1,cex.axis=1.0)
+  axis(2,at=log2(tick_sep[seq(1,31,5)]),
+       labels=prettyNum(tick_sep[seq(1,31,5)],
+                        digits=2,format="f"),las=1,cex.axis=1.0)
+  axis(1,at=log2(tick_sep[-seq(1,31,5)]),labels=F,las=1,tck = -0.01)
+  axis(2,at=log2(tick_sep[-seq(1,31,5)]),labels=F,las=1,tck = -0.01)
+  points(cts_avg[,as.character(group1)],cts_avg[,as.character(group2)],
+         pch=20,col=Plot_Colors[1+sig_logical],cex=0.5+(0.2*sig_logical))
+  abline(h=log2(10),v=log2(10),lty=2,col="grey60")
+  abline(0,1, col="grey60")
+  abline(-1,1,col="grey60")
+  abline(1,1,col="grey60")
+  legend('topleft',legend = c("p > 0.05","p < 0.05"),
+         fill=Plot_Colors, bty='n', cex=1.5)
+  dev.off()
+}
+
+# generate mean reads scatterplot pdf files
+
+for (i in 1:length(Combinations[1,])){
+  mean_scatterplot(Combinations[1,i],Combinations[2,i])
+}
+
+```
+
+\newpage
+
+```{r,echo=FALSE,fig.align="center"}
+
+# Create list of file names to incorporate into the pdf output
+
+Means_Scatter_Files = NULL
+for (i in 1:length(Combinations[1,])) {
+  Means_Scatter_Files = c(Means_Scatter_Files,
+                          paste0(format(Sys.Date(),format = "%d_%m_%y_"),
+                                 as.character(Combinations[2,i]),'_vs_',
+                                 as.character(Combinations[1,i]),
+                                 '_means_plot.pdf'))
+}
+
+# Incorporate files into pdf output
+
+include_graphics(Means_Scatter_Files)
+
+```
+
+\newpage
+
+## Appendix
+
+```{r ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+
+```
