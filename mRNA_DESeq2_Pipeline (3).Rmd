@@ -1,0 +1,400 @@
+---
+title: "MontgomeryDESeqPipeline"
+author: "Dr. Taiowa Montgomery, Spencer Kuhn"
+output:
+  html_document:
+    df_print: paged
+---
+
+\center
+
+## Overview
+
+This pipeline serves to interpret DESeq2 output of mRNA DGE Experiments using a PCA plot, MA Plots for different contrasts, an overall counts heatmap, replicate scatter plots within each condition, and mean scatterplots for different contrasts that highlight statistically significant observations. Required packages are DESeq2, tximport, knitr, and heatmaply. Within the working directory, seqeuncing results files (already filtered, trimmed, and mapped to a reference genome) will need to be present in addition to a csv called 'samples.csv' with columns in the following format: "files", "replicates", "condition", and "control_condition". The first column is a list of the file names to be imported from the working directory. The second column consists of the treatment type and replicate number associated with each corresponding results file (for example, 'WT_1'). The third column consists of the generalized treatment type/condition for each file without replicate numbers (for example, simply 'WT'), and the fourth column is a logical vector (TRUE/FALSE) establishing whether or not each condition/file is a control group condition/file. The first file listed for each condition will be used to establish the control group status from the fourth column. The pipeline is generalized to a variety of experimental types. If one control group is listed, all other condition groups will be compared against the control group, with MA Plots and mean reads scatterplots drawn for each contrast between control and experimental groups. If multiple control groups are listed, or if no control group is listed, MA Plots and mean reads scatterplots will be drawn for all possible contrasts between different conditions. 
+
+```{r,echo=FALSE,include=FALSE,warning=FALSE}
+
+library(DESeq2)
+library(tximport)
+library(knitr)
+library(heatmaply)
+
+```
+
+## CSV Interpretation, DESeq, and Wrapped Objects for Plotting
+
+The samples table is generated from the samples.csv file in the working directory. A list of files named by their replicate number and type is created for the tximport function. The 'control_condition' object summarizes each unique condition as a control or experimental group according to a named logical vector. The DESeqDataSetFromTximport function requires a table consisting of the condition column with each row named according to the associated replicated number and type. This table is named 'sampleTable'. After tximport is run to interpret the results files, the dds object compiles the imported files and runs them through DESeq2. An overall counts table is built from dds and saved in the working directory as a csv file with a preceding date stamp. Next, the list of intended contrasts is stored in the 'Combinations' object, which is built from the information in 'control_condition'. 'Combinations' is used for the MA Plots and mean reads scatterplots. For each contrast, a counts table csv is made and saved in the working directory with a preceding date stamp. These counts tables include the counts for each replicate, the fold change between contrasted conditions, and the adjusted P-Value of the fold change. In addition, if a csv file called "Gene_Table.csv" is present in the working directory, with the csv consisting of a list of GeneIDs in one column and GeneIDs or common gene names (if available) in the second column, then the counts tables will be built with a column including the common names (if available; GeneID used if common name is not available). If "Gene_Table.csv" is not present in the working directory, the counts tables will include repeated GeneID columns. After the counts table csv files are made, a variance-stablizing transformation is performed for the PCA plot. Then, the counts table is log2 transformed and put into the object 'cts_heat', and rows with an average count below 3 (post-transformation) are removed from 'cts_heat' for heatmap preparation. This table is clustered by row using euclidean distance and complete clustering. Finally, a table is generated compiling the log2 of average counts by gene across all replicates for each condition. Infinite values are replaced with -4. This counts table is used for the mean reads scatterplots. 
+
+```{r,include=FALSE,results='hide',message=FALSE}
+
+# read samples information into a data frame
+
+samples = read.csv("samples.csv")
+
+# generate named list of files for tximport
+
+files = samples[,1]
+names(files) = samples[,2]
+
+# generate named 'control_condition' object and 'conditions_set' object
+
+control_condition = as.logical(samples[,4])
+conditions_set = as.factor(samples[,3])
+names(control_condition) = conditions_set
+control_condition = control_condition[unique(names(control_condition))]
+
+# create named data frame of condition and replicate structure
+
+sampleTable = data.frame(condition = conditions_set)
+rownames(sampleTable) = samples[,2]
+
+# import files
+
+txi.rsem = tximport(files, type = "rsem", txIn = FALSE, txOut = FALSE)
+txi.rsem$length[txi.rsem$length == 0] = 1
+
+# run DESeq and save object as dds
+
+dds = DESeqDataSetFromTximport(txi.rsem,sampleTable,~condition)
+dds = DESeq(dds)
+
+# write counts table csv with preceding date stamp
+
+write.csv(counts(dds,normalized=TRUE),
+          paste0(format(Sys.Date(),format = "%d_%m_%y_"),'counts_table.csv'))
+
+# CombinationCvR Function:
+# Generates list of contrasts between control and experimental groups
+
+CombinationCvR = function(control){
+  rbind(rep(as.character(control),length(levels(conditions_set))-1),
+        levels(conditions_set)[-which(levels(conditions_set) == as.character(control))])
+}
+
+# use control_condition vector to establish appropriate list of contrasts
+
+if (all(!control_condition) | sum(control_condition > 1)) {
+  Combinations = combn(levels(conditions_set),2)
+} else {
+  Combinations = CombinationCvR(names(which(control_condition == TRUE)))
+}
+
+# generate csv counts table for each contrast listed in 'Combinations'
+
+cts = counts(dds, normalized=TRUE)
+
+# Gene_Table.csv import (if available) and listing of genes with common names
+
+if ("Gene_Table.csv" %in% dir()) {
+  GeneIDs = read.csv("Gene_Table.csv")
+  GeneUnique = NULL
+  for (i in 1:length(GeneIDs[,1])){
+    if (as.character(GeneIDs[i,1]) != as.character(GeneIDs[i,2])) {
+      GeneUnique = rbind(GeneUnique,GeneIDs[i,c(1,2)])
+    }
+  }
+} else {
+  GeneUnique = NULL
+}
+
+# Results Table Function: formats results object from dds for better usability
+
+Results_Table = function(resOrdered,group1,group2) {
+  resOrdered = as.data.frame(resOrdered)
+  commonnames = rep(NA,length(rownames(resOrdered)))
+  for (i in 1:length(rownames(resOrdered))) {
+    if (rownames(resOrdered)[i] %in% GeneUnique[,1]) {
+      commonnames[i] = GeneUnique[which(GeneUnique[,1] == rownames(resOrdered)[i]),2]
+    } else {
+      commonnames[i] = rownames(resOrdered)[i]
+    }
+  }
+  resOrdered = cbind(commonnames,resOrdered)
+  resOrdered = resOrdered[,-c(2,4,5,6)]
+  resCounts = matrix(rep(NA,dim(cts)[2]*dim(resOrdered)[1]),
+                     nrow = dim(resOrdered)[1],ncol = dim(cts)[2])
+  for (i in 1:length(resOrdered[,1])) {
+    resCounts[i,] = cts[which(rownames(cts) == rownames(resOrdered)[i]),]
+  }
+  colnames(resCounts) = colnames(cts)
+  resCounts = resCounts[,c(rownames(sampleTable)[which(sampleTable == group1)],
+                           rownames(sampleTable)[which(sampleTable == group2)])]
+  resOrdered = cbind(resOrdered[,1],resCounts,resOrdered[,c(2,3)])
+  colnames(resOrdered)[1] = "Common_Name"
+  resOrdered$log2FoldChange[which(resOrdered$log2FoldChange > 0)] = 
+    2^resOrdered$log2FoldChange[which(resOrdered$log2FoldChange > 0)]
+  resOrdered$log2FoldChange[which(resOrdered$log2FoldChange < 0)] = 
+    -1/(2^resOrdered$log2FoldChange[which(resOrdered$log2FoldChange < 0)])
+  colnames(resOrdered)[length(colnames(resOrdered))-1] = "Fold_Change"
+  return(resOrdered)
+}
+
+# construction of results csv files for each contrast
+
+for (i in 1:length(Combinations[1,])){
+  res = results(dds,contrast=c("condition",as.character(Combinations[2,i]),
+                               as.character(Combinations[1,i])))
+  resOrdered = res[order(res$pvalue),]
+  resOrdered = Results_Table(resOrdered,Combinations[1,i],Combinations[2,i])
+  write.csv(resOrdered,paste0(format(Sys.Date(),format = "%d_%m_%y_"),
+                            as.character(Combinations[2,i]),'_vs_',
+                            as.character(Combinations[1,i]),'.csv'))
+}
+
+# conduct variance-stabilizing transformation
+
+vsd = vst(dds, blind = FALSE)
+
+# produce Log2 transform of counts table for heatmap generation
+
+cts_heat = cts
+cts_heat = log2(cts_heat)
+cts_heat = cts_heat[which(rowMeans(cts_heat) >= 3),]
+
+# Cluster rows of cts_heat prior to creating heatmap in order to reduce computing strain
+
+d = dist(cts_heat,method = "euclidean")
+h = hclust(d,method = "complete")
+
+# produce average counts table across replicates of each condition
+
+cts_avg = NULL
+for (i in levels(conditions_set)) {
+  cts_avg = cbind(cts_avg,
+                  log2(rowMeans(cts[,samples[,2][samples[,3] == i]])))
+}
+
+# replace infinite values with -4
+
+cts_avg = replace(cts_avg,cts_avg=='-Inf',-4)
+
+# name columns of average counts table and add feature type column
+
+colnames(cts_avg) = levels(conditions_set)
+
+```
+
+\newpage
+
+## PCA Plot
+
+The variance stabilizing transform data is used to create a plot for the first two principal components. The output is a PDF file labeled with a preceding date stamp.
+
+```{r,include=FALSE,message=FALSE}
+
+# create PCA plot file including current date
+
+pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),"PCA_plot.pdf"),title = "PCA Plot")
+plotPCA(vsd, intgroup="condition")
+dev.off()
+
+```
+
+```{r,echo=FALSE,fig.height=5,fig.width=5,fig.align="center"}
+
+# Incorporate file into pdf output
+
+plotPCA(vsd, intgroup="condition")
+
+```
+
+\newpage
+
+## MA Plots
+
+Two MA plots are created for each intended contrast/combination based on the samples.csv file. The first MA Plot draws from the DESeq results file for the appropriate contrast, and the second MA plot transforms the general DESeq object with log2 fold change shrinkage before plotting. Output files are labeled by contrast with a preceding date stamp.
+
+```{r,include=FALSE,message=FALSE}
+
+# MA Plotting Functions: uses results file from DESeq 
+# Compares the two function inputs against each other
+
+# CompareMA creates a standard MA plot
+
+CompareMA = function(group1,group2){
+  res = results(dds,contrast=c("condition",as.character(group2),as.character(group1)))
+  plotMA(res, ylim=c(-4,4),main = paste0(group2,' vs ',group1))
+}
+
+# CompareMA_Shrunk creates an LFC Shrinkage MA plot
+
+CompareMA_Shrunk = function(group1,group2) {
+  resLFC = lfcShrink(dds,contrast=c("condition",as.character(group2),as.character(group1)),
+                     type="normal")
+  plotMA(resLFC, ylim=c(-4,4),main = paste0(group2,' vs ',group1))
+}
+
+# produce pdf files of each MA plot given the set of combinations
+
+for (i in 1:length(Combinations[1,])){
+  pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),
+             Combinations[2,i],'_vs_',Combinations[1,i],'_MA.pdf'),
+      title = paste0(Combinations[2,i],' vs ',Combinations[1,i],' MA Plot'))
+  CompareMA(Combinations[1,i],Combinations[2,i])
+  CompareMA_Shrunk(Combinations[1,i],Combinations[2,i])
+  dev.off()
+}
+
+```
+
+\newpage
+
+```{r,echo=FALSE,fig.height=5,fig.width=5,fig.align="center",fig.show="hold",message=FALSE}
+
+# Incorporate files into pdf output
+
+for (i in 1:length(Combinations[1,])){
+  CompareMA(Combinations[1,i],Combinations[2,i])
+  CompareMA_Shrunk(Combinations[1,i],Combinations[2,i])
+}
+
+```
+
+\newpage
+
+## Heatmap
+
+The object 'cts_heat', which consists of all log2 counts from 'cts' that are above a row threshold of 3 (which translates to an average read number of 8 across all samples for a given gene), is used to create an interactive heatmap for the counts table. This heatmap is clustered by row (prior to the plotting call) using euclidean distance and a complete clustering method. Darker blue cells correspond to higher log2 counts. The heatmap includes hover text describing each cell, as well as zooming and panning features for analyzing smaller groups of cells. The output is an interactive HTML widget.
+
+```{r,echo=FALSE,fig.height=6,fig.width=9}
+
+# Contstruct interactive heatmap of entire cts_heat object
+
+heatmaply(cts_heat[h$order,],
+          colors = c("#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6",
+                     "#2171B5","#08519C","#08306B","#03095B","#020532","#000000"),
+          showticklabels = c(TRUE,FALSE),
+          Colv = FALSE,
+          Rowv = FALSE,
+          main = "Overall Heatmap",
+          file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),"Heatmap.html"))
+
+
+```
+
+\newpage
+
+## Intra-Condition Scatterplot
+
+Multiple scatterplots are created comparing the normalized counts of one sample/replicate in a particular condition to the normalized counts of another sample/replicate in that same condition. Plots are created for each condition in the experiment. The scatterplots are placed into a single PDF with a preceding date stamp. 
+
+```{r,include=FALSE}
+
+# Scatterplot Generator Function: 
+# Creates set of all replicate pairs within each condition 
+# Plots normalized counts for each pair, as provided by the general dds object
+
+scatterplot_by_condition = function(condition_set){
+  combinations = NULL
+  for (i in levels(condition_set)){
+    columns = c(samples[which(samples[,3] == as.character(i)),2])
+    combinations = cbind(combinations,combn(columns,2))
+  }
+  par(mfrow=c(length(levels(condition_set)),3),mar = c(4,3,1,1), mgp = c(2,0.5,0),pty="s")
+  for (i in 1:length(combinations[1,])){
+    plot(log2(replace(cts,cts < 1,1))[,c(combinations[1,i],combinations[2,i])],
+         col="lightskyblue4",pch=15,cex=0.2)
+  }
+}
+
+pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),"scatter_plots.pdf"),
+    title = "Intra-Condition Scatterplots")
+scatterplot_by_condition(conditions_set)
+dev.off()
+
+```
+
+```{r,echo=FALSE,fig.height=2.5,fig.width=7.5,fig.align="center",fig.show="hold"}
+
+# Incorporate file into HTML output
+
+for (i in levels(conditions_set)) {
+  scatterplot_by_condition(as.factor(i))
+}
+
+```
+
+\newpage
+
+## Mean Reads Scatterplots
+
+The scatterplots below graph average counts of all genes (across biological replicates) for one condition against the average counts for another condition according to the previous set of contrasts generated for the MA Plots. From a results object for a single contrast, significant data points are distinguished based on adjusted p-values of less than 0.05 and a log2 fold change greater than 0.378511623 or less than -0.378511623. The scatterplot then colors the average counts by gene based on these significance qualifications, with blue points corresponding to significant data points and gray points corresponding to insignificant data points. Diagonal guide lines are added with intercepts -1, 0, and 1. Axes are on a log2 scale, with four minor tick marks spaced at even numeric intervals between each major tick mark. Vertical and horizontal axes both range from 1/16 to 1,048,576, with each major tick mark representing a sixteen-fold increase from the previous tick mark. The output PDF files are labeled by contrast with a preceding date stamp. 
+
+```{r,include=FALSE,message=FALSE}
+
+# Mean Reads Scatterplot Generator Function: 
+# Uses results files from general DESeq object 
+# Isolates significant data points based p-values and fold change
+
+Plot_Colors = c("lightgray","deepskyblue3")
+
+mean_scatterplot = function(group1,group2){
+  group1 = as.character(group1)
+  group2 = as.character(group2)
+  res = results(dds,contrast=c("condition",group2,group1))
+  res_sig = as.data.frame(subset(res,padj < 0.05 & abs(log2FoldChange) > 0.378511623))
+  sig_logical = rownames(cts_avg) %in% rownames(res_sig)
+  par(mar=c(5,5,5,2))
+  plot(-4:20,-4:20,tck = 0,xaxt='n',yaxt='n',type="n",
+       main=paste0(group2,' vs ',group1),
+       xlab=paste0('Average reads in ',group1),
+       ylab=paste0('Average reads in ',group2),
+       font.lab=2,las = "1",tcl = -.3,cex.lab = 1.5,
+       cex.lab = 1.5,cex.main = 2,cex.axis = 2)
+  tick_sep = seq(-4,20,0.8)
+  tick_sep = 2^tick_sep
+  tick_sep[1:6] = seq(tick_sep[1],tick_sep[6],length.out = 6)
+  tick_sep[6:11] = seq(tick_sep[6],tick_sep[11],length.out = 6)
+  tick_sep[11:16] = seq(tick_sep[11],tick_sep[16],length.out = 6)
+  tick_sep[16:21] = seq(tick_sep[16],tick_sep[21],length.out = 6)
+  tick_sep[21:26] = seq(tick_sep[21],tick_sep[26],length.out = 6)
+  tick_sep[26:31] = seq(tick_sep[26],tick_sep[31],length.out = 6)
+  axis(1,at=log2(tick_sep[seq(1,31,5)]),
+       labels=prettyNum(tick_sep[seq(1,31,5)],
+                        digits=2,format="f"),las=1,cex.axis=1.0)
+  axis(2,at=log2(tick_sep[seq(1,31,5)]),
+       labels=prettyNum(tick_sep[seq(1,31,5)],
+                        digits=2,format="f"),las=1,cex.axis=1.0)
+  axis(1,at=log2(tick_sep[-seq(1,31,5)]),labels=F,las=1,tck = -0.01)
+  axis(2,at=log2(tick_sep[-seq(1,31,5)]),labels=F,las=1,tck = -0.01)
+  points(cts_avg[,as.character(group1)],cts_avg[,as.character(group2)],
+         pch=20,col=Plot_Colors[1+sig_logical],cex=0.5+(0.2*sig_logical))
+  abline(h=log2(10),v=log2(10),lty=2,col="grey60")
+  abline(0,1, col="grey60")
+  abline(-1,1,col="grey60")
+  abline(1,1,col="grey60")
+  legend('topleft',legend = c("p > 0.05","p < 0.05"),
+         fill=Plot_Colors, bty='n', cex=1.5)
+}
+
+# generate mean reads scatterplot pdf files
+
+for (i in 1:length(Combinations[1,])){
+  pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),
+             Combinations[2,i],'_vs_',Combinations[1,i],"_means_plot.pdf"),
+      title = paste0(Combinations[2,i],' vs ',Combinations[1,i]," Means Plot"))
+  mean_scatterplot(Combinations[1,i],Combinations[2,i])
+  dev.off()
+}
+
+```
+
+\newpage
+
+```{r,echo=FALSE,fig.height=6,fig.width=6,fig.align="center",fig.show="hold"}
+
+# Incorporate files into HTML output
+
+for (i in 1:length(Combinations[1,])){
+  mean_scatterplot(Combinations[1,i],Combinations[2,i])
+}
+
+```
+
+\newpage
+
+## Appendix
+
+```{r ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+
+```
