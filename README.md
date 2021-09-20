@@ -9,8 +9,6 @@
 
 [Introduction](#Introduction)
 
-[Required Packages](#Required-Packages)
-
 [CSV Interpretation, DESeq, and Wrapped Objects for Plotting](#CSV-Interpretation,-DESeq,-and-Wrapped-Objects-for-Plotting)
 
 [PCA Plot](#PCA-Plot)
