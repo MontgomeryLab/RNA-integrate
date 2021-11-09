@@ -42,7 +42,7 @@ The variance stabilizing transform data is used to create a plot for the first t
 
 The object 'cts_heat', which consists of all log2 counts from 'cts' that are above a row threshold of 3 (which translates to an average read number of 8 across all samples for a given gene), is used to create an interactive heatmap for the counts table. This heatmap is clustered by row (prior to the plotting call) using euclidean distance and a complete clustering method. Darker blue cells correspond to higher log2 counts. The heatmap includes hover text describing each cell, as well as zooming and panning features for analyzing smaller groups of cells. The output is an interactive HTML widget.
 
-![Heatmap](ExamplePlots/Example_Heatmap.jpeg)
+![Heatmap](ExamplePlots/Example_Heatmap.png)
 
 ## MA Plots
 
