@@ -42,17 +42,17 @@ The variance stabilizing transform data is used to create a plot for the first t
 
 The object 'cts_heat', which consists of all log2 counts from 'cts' that are above a row threshold of 3 (which translates to an average read number of 8 across all samples for a given gene), is used to create an interactive heatmap for the counts table. This heatmap is clustered by row (prior to the plotting call) using euclidean distance and a complete clustering method. Darker blue cells correspond to higher log2 counts. The heatmap includes hover text describing each cell, as well as zooming and panning features for analyzing smaller groups of cells. The output is an interactive HTML widget.
 
-![Heatmap](ExamplePlots/Example_Heatmap.jpeg)
+![Heatmap](ExamplePlots/Example_Heatmap.png)
 
 ## MA Plots
 
 For MA Plotting, a function defined within the program creates two MA Plot pdfs for a given contrast between conditions. With the two contrasting conditions as the function inputs, CompareMA generates a results file from the dds object. This results file is used for the plotMA function from DESeq2. The first pdf consists of a standard MA plot, while the second consists of an MA plot after LFC shrinkage using the lfcShrink function from DESeq2. The LFC Shrinkage is type 'normal' and takes a contrast argument rather than a coefficient argument. Output pdfs have a preceding date stamp.
 
-![A vs B MA Plot](ExamplePlots/Example_AvsB_MA.jpeg)
+![A vs B MA Plot](ExamplePlots/Example_disl-2_vs_N2_MA.jpeg)
 
 Above: Standard MA Plot | Below: LFC Shrinkage MA Plot
 
-![A vs B MA Plot Shrunk](ExamplePlots/Example_AvsB_MA_shrunk.jpeg)
+![A vs B MA Plot Shrunk](ExamplePlots/Example_disl-2_vs_N2_MA_shrunk.jpeg)
 
 ## Intra-Condition Scatterplots
 
@@ -64,7 +64,7 @@ A program-defined function called scatterplot_by_condition takes the condition s
 
 The mean reads scatterplots graph average counts of all genes (across biological replicates) for one condition against the average counts for another condition according to the previous set of contrasts generated for the MA Plots. A program-defined function called mean_scatterplot takes a results object for a single contrast and distinguishes significant data points based on adjusted p-values of less than 0.05 and a log2 fold change greater than 0.378511623 or less than -0.378511623. The scatterplot function then colors the average counts by gene based on these significance qualifications, with blue points corresponding to significant data points and gray points corresponding to insignificant data points (named colors in R are used), although point colors can be changed within the Plot_Colors object. Diagonal guide lines are added with intercepts -1, 0, and 1. Axes are on a log2 scale, with four minor tick marks spaced at even numeric intervals between each major tick mark. Vertical and horizontal axes both range from 1/16 to 1,048,576, with each major tick mark representing a sixteen-fold increase from the previous tick mark. The output PDF files are labeled by contrast with a preceding date stamp. 
 
-![A vs B Scatterplot](ExamplePlots/Example_AvsB_means_plot.jpeg)
+![A vs B Scatterplot](ExamplePlots/Example_disl-2_vs_N2_means_plot.jpeg)
 
 ## Authors
 
