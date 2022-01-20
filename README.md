@@ -1,9 +1,6 @@
+# DESeq2App: Analysis of differentially expressed small RNAs and mRNAs using R and Shiny
 
-# Read Filtering, Mapping, and Feature Counting
-
-## COMING SOON
-
-# DESeq2 Results & Graphics Wrapping Program for mRNA Differential Gene Expression Experiments
+:warning: **Under Development & Testing** :warning:
 
 ## Table of Contents
 
