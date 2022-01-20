@@ -1,6 +1,6 @@
 ---
 title: "MontgomeryDESeqPipeline"
-author: "Dr. Taiowa Montgomery, Spencer Kuhn"
+author: "Dr. Taiowa Montgomery, Spencer McGuire Kuhn"
 output:
   html_document:
     df_print: paged
