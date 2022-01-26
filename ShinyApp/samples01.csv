@@ -1,0 +1,12 @@
+files,replicates,condition,control_condition
+Trimmed.BM1_CKDL210017928-1a_HGKN5CCX2_L4_1.fq.gz.genes.results,N2_1,N2,TRUE
+Trimmed.BM2_CKDL210017929-1a_HGKN5CCX2_L4_1.fq.gz.genes.results,N2_2,N2,TRUE
+Trimmed.BM3_CKDL210017930-1a_HGKN5CCX2_L4_1.fq.gz.genes.results,prg-1_1,prg-1,FALSE
+Trimmed.BM4_CKDL210017931-1a_HGKN5CCX2_L4_1.fq.gz.genes.results,prg-1_2,prg-1,FALSE
+Trimmed.BM5_CKDL210017932-1a_HGKN5CCX2_L4_1.fq.gz.genes.results,prg-1_3,prg-1,FALSE
+Trimmed.BM6_CKDL210017933-1a_HGKN5CCX2_L4_1.fq.gz.genes.results,disl-2_1,disl-2,FALSE
+Trimmed.BM7_CKDL210017934-1a_HGKN5CCX2_L4_1.fq.gz.genes.results,disl-2_2,disl-2,FALSE
+Trimmed.BM8_CKDL210017935-1a_HGKN5CCX2_L4_1.fq.gz.genes.results,disl-2_3,disl-2,FALSE
+Trimmed.BM9_CKDL210017936-1a_HGKN5CCX2_L4_1.fq.gz.genes.results,prg-1 disl-2_1,prg-1 disl-2,FALSE
+Trimmed.BM10_CKDL210017937-1a_HGKN5CCX2_L4_1.fq.gz.genes.results,prg-1 disl-2_2,prg-1 disl-2,FALSE
+Trimmed.BM11_CKDL210017938-1a_HGKN5CCX2_L4_1.fq.gz.genes.results,prg-1 disl-2_3,prg-1 disl-2,FALSE
