@@ -4,21 +4,21 @@
 
 ## Table of Contents
 
-- [Introduction](##introduction)
-- [Installation](##installation)
-- [Configuration Files](##configuration-files)
-  - [Parameters YAML](###parameters-yaml)
-  - [Metadata CSV](###metadata-csv)
-  - [Gene Table](###gene-table)
-  - [Plot Parameters CSV](###plot-parameters-csv)
-- [Output](##output)
-  - [Results Tables](###results-tables)
-  - [PCA Plot](###pca-plot)
-  - [Intra-Condition Scatter Plot](###intra--condition-scatter-plot)
-  - [Mean Reads Scatter Plots](###mean-reads-scatter-plots)
-  - [MA Plots](###ma-plots)
-  - [Heatmap](###heatmap)
-- [Authors](##authors)
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Configuration Files](#configuration-files)
+  - [Parameters YAML](#parameters-yaml)
+  - [Metadata CSV](#metadata-csv)
+  - [Gene Table](#gene-table)
+  - [Plot Parameters CSV](#plot-parameters-csv)
+- [Output](#output)
+  - [Results Tables](#results-tables)
+  - [PCA Plot](#pca-plot)
+  - [Intra-Condition Scatter Plot](#intra--condition-scatter-plot)
+  - [Mean Reads Scatter Plots](#mean-reads-scatter-plots)
+  - [MA Plots](#ma-plots)
+  - [Heatmap](#heatmap)
+- [Authors](#authors)
 
 
 ## Introduction
