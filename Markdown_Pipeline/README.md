@@ -1,23 +1,23 @@
-### Montgomery R Markdown Pipeline for mRNA and small RNA DGE Experiments
+# Montgomery R Markdown Pipeline for mRNA and small RNA DGE Experiments
 
 :warning: **Under Development & Testing** :warning:
 
 ## Table of Contents
 
 - [Introduction](##introduction)
-- [Installation](#installation)
-- [Configuration Files](#configuration-files)
-  - [Parameters YAML](#parameters-yaml)
-  - [Metadata CSV](#metadata-csv)
-  - [Gene Table](#gene-table)
-  - [Plot Parameters CSV](#plot-parameters-csv)
+- [Installation](##installation)
+- [Configuration Files](##configuration-files)
+  - [Parameters YAML](###parameters-yaml)
+  - [Metadata CSV](###metadata-csv)
+  - [Gene Table](###gene-table)
+  - [Plot Parameters CSV](###plot-parameters-csv)
 - [Output](##output)
-  - [Results Tables](#results-tables)
-  - [PCA Plot](#pca-plot)
-  - [Intra-Condition Scatter Plot](#intra--condition-scatter-plot)
-  - [Mean Reads Scatter Plots](#mean-reads-scatter-plots)
-  - [MA Plots](#ma-plots)
-  - [Heatmap](#heatmap)
+  - [Results Tables](###results-tables)
+  - [PCA Plot](###pca-plot)
+  - [Intra-Condition Scatter Plot](###intra--condition-scatter-plot)
+  - [Mean Reads Scatter Plots](###mean-reads-scatter-plots)
+  - [MA Plots](###ma-plots)
+  - [Heatmap](###heatmap)
 - [Authors](##authors)
 
 
@@ -37,29 +37,29 @@ Or in the command line as such:
 
 ## Configuration Files
 
-# Parameters YAML
+### Parameters YAML
 
-# Metadata CSV
+### Metadata CSV
 
-# Gene Table
+### Gene Table
 
-# Plot Parameters CSV
+### Plot Parameters CSV
 
 ## Output
 
-# Results Tables
+### Results Tables
 
 Results tables display the gene-wise counts from each replicate in a given contrast, followed by the fold change value of each gene and the associated p-value (adjusted) of the negative binomial hypothesis test conducted by DESeq2. Lower p-values indicate a lower probability of the null hypothesis that counts between the two conditions are derived from the same distributional parameters. Furthermore, common gene names from any uploaded gene names table will appear in a column alongside standard gene IDs for the genes that aren't associated with a common name. In addition to pdf outputs, these tables can be saved as html widgets with <strong>sorting, searching, and page size customization</strong> features.
 
-# PCA Plot
+### PCA Plot
 
-# Intra-Condition Scatter Plot
+### Intra-Condition Scatter Plot
 
-# Mean Reads Scatter Plots
+### Mean Reads Scatter Plots
 
-# MA Plots
+### MA Plots
 
-# Heatmap
+### Heatmap
 
 
 ## Authors
