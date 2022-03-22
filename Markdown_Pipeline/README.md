@@ -89,6 +89,8 @@ The parameters YAML file contains the details of the experimental configuration,
 
 ### Metadata CSV
 
+The metadata csv summarizes the experimental design and provides information to the DESeq2 analysis. The first column of the metadata csv should include counts file names corresponding to each sample. If the software method being used is "Counts Matrix" or "tiny RNA" then the first column can consist of either arbitrary/empty strings or name of the counts matrix repeated on each row. The second column of the metadata csv describes specific replicates for each sample in the experiment (ex. "WT_1","prg-1_2", etc.). The third column describes the condition associated with each of the samples/replicates in the previous column (ex. simply "WT" or "prg-1"). The fourth column of the csv consists of logical values (TRUE/FALSE) describing whether each sample belongs to a control group/condition. An example of the metadata csv can be viewed here.
+
 ### Gene Table
 
 ### Plot Parameters CSV
