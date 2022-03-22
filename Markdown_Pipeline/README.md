@@ -66,6 +66,27 @@ The following packages are used within the pipeline:
 
 ### Parameters YAML
 
+The parameters YAML file contains the details of the experimental configuration, including a number of plot customization options. The demo params.yml file can be seen here. The following parameters are read from the YAML file during the pipeline's execution:
+
+- experiment_id: a short string with no spaces or special characters that distinguishes a particular experimental run. The experiment id will be included in the names of the output directory and saved files. 
+- software_method: the tabulation software used to produce counts files or a counts matrix. Options include Counts Matrix (FeatureCounts), tiny RNA (developed by the Montgomery Lab - https://github.com/MontgomeryLab/tinyRNA), rsem, HTSeq, Salmon, Kallisto. 
+- counts_matrix: a string describing the file path for the counts matrix or the tiny RNA matrix, if applicable.
+- metadata: a string describing the file path for the [Metadata CSV](#metadata-csv).
+- gene_table_method: options include "Full Table", "Common Names Only", "Gene Class Only", and "No Table". see [Gene Table](#gene-table).
+- gene_table: a string describing the file path for the gene table, if applicable.
+- generate_results_tables: TRUE or FALSE logical value describing whether [Results Tables](#results-tables) should be rendered and saved.
+- generate_pca: TRUE or FALSE logical value describing whether the [PCA Plot](#pca-plot) should be rendered and saved.
+- generate_intra_condition: TRUE or FALSE logical value describing whether the [Intra-Condition Scatter Plot](#intra-condition-scatter-plot) should be rendered and saved.
+- generate_mean_reads: TRUE or FALSE logical value describing whether the [Mean Reads Scatter Plots](#mean-reads-scatter-plots) should be rendered and saved.
+- p_value_threshold: numeric value threshold for classifying significant genes by p-value (between 0.01 and 0.1 for best results).
+- fold_change_threshold: numeric value threshold for classifying significant genes by fold change (between 1.1 and 2.0 for best results).
+- plot_parameters_method: options include "Full Table", "Point Colors Only", "Point Sizes Only", and "No Table". see [Plot Parameters CSV](#plot-parameters-csv).
+- plot_parameters: a string describing the file path for the plot parameters csv, if applicable.
+- generate_ma: TRUE or FALSE logical value describing whether the [MA Plots](#ma-plots) should be rendered and saved.
+- generate_heatmap: TRUE or FALSE logical value describing whether the [Heatmap](#heatmap) should be rendered and saved.
+- heatmap_type: options include "Complete", "Class-Separated: All Classes", and "Class-Separated: Selected Classes". See [Heatmap](#heatmap).
+- heatmap_selected_classes: comma-separated list of classes for which heatmaps will be generated if the heatmap type is "Class-Separated: Selected Classes"
+
 ### Metadata CSV
 
 ### Gene Table
