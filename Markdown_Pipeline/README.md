@@ -1,6 +1,6 @@
 # Montgomery R Markdown Pipeline for mRNA and small RNA DGE Experiments
 
-:warning: **Under Development & Testing** :warning:
+:warning: **Under Development** :warning:
 
 ## Table of Contents
 
