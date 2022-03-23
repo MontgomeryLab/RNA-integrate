@@ -97,6 +97,8 @@ The gene table is a key component of customizing the pipeline's data analysis an
 
 ### Plot Parameters CSV
 
+The plot parameters csv is used to customize [Mean Reads Scatter Plots](#mean-reads-scatter-plots). A gene table must be used in the experiment in order for the plot parameters csv to be usable. The first column of the csv should consist of any number of class names identical to those found in the gene table. Points (genes) corresponding to these classes can be colored, re-sized, or both in the mean reads scatter plots. If "Point Colors Only" is selected as the plot parameters method, the second column of the table should consist of hex color values corresponding to each class (ex. "#D95F02"). If "Point Sizes Only" is selected as the plot parameters method, the second column of the table should consist of numeric values between 0.1 and 1.0 that describe the point sizes for genes of the corresponding class (default size is 0.5). If "Full Table" is selected as the plot parameters method, then the second column of the csv should consist of point colors and the third column should consist of point sizes. An example plot parameters csv can be seen here. 
+
 ## Output
 
 ### Results Tables
