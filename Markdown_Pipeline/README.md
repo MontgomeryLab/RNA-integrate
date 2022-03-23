@@ -93,6 +93,8 @@ The metadata csv summarizes the experimental design and provides information to 
 
 ### Gene Table
 
+The gene table is a key component of customizing the pipeline's data analysis and visualization. The first column of the gene table should consist of any number of gene IDs identical to corresponding IDs from the counts files or matrix. If "Common Names Only" is selected as the gene table method, then common or public names should be listed in the second column of the csv. If a gene does not have a common name, its gene ID can be repeated in the second column, or the gene can be removed from the gene table altogether. If "Gene Class Only" is selected as the gene table method, then any classification of interest can be listed in the second column of the csv. If a gene has no associated classification, it should be removed from the gene table or given the classifcation "other" in the second column. If "Full Table" is selected as the gene table method, common names should be listed in the second column and classifications should be listed in the third column. If a gene does not have either a common name or a classification, the rules of the other corresponding table types should be applied. An example gene table can be viewed here.
+
 ### Plot Parameters CSV
 
 ## Output
