@@ -87,19 +87,35 @@ The parameters YAML file contains the details of the experimental configuration,
 - heatmap_type: options include "Complete", "Class-Separated: All Classes", and "Class-Separated: Selected Classes". See [Heatmap](#heatmap).
 - heatmap_selected_classes: comma-separated list of classes for which heatmaps will be generated if the heatmap type is "Class-Separated: Selected Classes"
 
-An example of the parameters YAML can be seen here.
+An example of the parameters YAML can be seen [here](params.yml).
 
 ### Metadata CSV
 
-The metadata csv summarizes the experimental design and provides information to the DESeq2 analysis. The first column of the metadata csv should include counts file names corresponding to each sample. If the software method being used is "Counts Matrix" or "tiny RNA" then the first column can consist of either arbitrary/empty strings or name of the counts matrix repeated on each row. The second column of the metadata csv describes specific replicates for each sample in the experiment (ex. "WT_1","prg-1_2", etc.). The third column describes the condition associated with each of the samples/replicates in the previous column (ex. simply "WT" or "prg-1"). The fourth column of the csv consists of logical values (TRUE/FALSE) describing whether each sample belongs to a control group/condition. An example of the metadata csv can be viewed here.
+The metadata csv summarizes the experimental design and provides information to the DESeq2 analysis. The first column of the metadata csv should include counts file names corresponding to each sample. If the software method being used is "Counts Matrix" or "tiny RNA" then the first column can consist of either arbitrary/empty strings or name of the counts matrix repeated on each row. The second column of the metadata csv describes specific replicates for each sample in the experiment (ex. "WT_1","prg-1_2", etc.). The third column describes the condition associated with each of the samples/replicates in the previous column (ex. simply "WT" or "prg-1"). The fourth column of the csv consists of logical values (TRUE/FALSE) describing whether each sample belongs to a control group/condition. An example of the metadata csv can be viewed [here](metadata.csv), and a preview is shown below.
+
+| files            | replicates | condition | control_condition |
+|------------------|------------|-----------|-------------------|
+| counts1.results  | N2_1       | N2        | TRUE              |
+| counts2.results  | prg-1      | prg-1     | FALSE             |
+| ...              | ...        | ...       | ...               |
 
 ### Gene Table
 
-The gene table is a key component of customizing the pipeline's data analysis and visualization. The first column of the gene table should consist of any number of gene IDs identical to corresponding IDs from the counts files or matrix. If "Common Names Only" is selected as the gene table method, then common or public names should be listed in the second column of the csv. If a gene does not have a common name, its gene ID can be repeated in the second column, or the gene can be removed from the gene table altogether. If "Gene Class Only" is selected as the gene table method, then any classification of interest can be listed in the second column of the csv. If a gene has no associated classification, it should be removed from the gene table or given the classifcation "other" in the second column. If "Full Table" is selected as the gene table method, common names should be listed in the second column and classifications should be listed in the third column. If a gene does not have either a common name or a classification, the rules of the other corresponding table types should be applied. An example gene table can be viewed here.
+The gene table is a key component of customizing the pipeline's data analysis and visualization. The first column of the gene table should consist of any number of gene IDs identical to corresponding IDs from the counts files or matrix. If "Common Names Only" is selected as the gene table method, then common or public names should be listed in the second column of the csv. If a gene does not have a common name, its gene ID can be repeated in the second column, or the gene can be removed from the gene table altogether. If "Gene Class Only" is selected as the gene table method, then any classification of interest can be listed in the second column of the csv. If a gene has no associated classification, it should be removed from the gene table or given the classifcation "other" in the second column. If "Full Table" is selected as the gene table method, common names should be listed in the second column and classifications should be listed in the third column. If a gene does not have either a common name or a classification, the rules of the other corresponding table types should be applied. An example gene table can be viewed [here](gene_table.csv), and a preview is shown below.
+
+| Gene_ID   | Common_Name | Gene_Class  |
+|-----------|-------------|-------------|
+| Y53H1C.1  | aat-9       | CSR         |
+| ...       | ...         | ...         |
 
 ### Plot Parameters CSV
 
-The plot parameters csv is used to customize [Mean Reads Scatter Plots](#mean-reads-scatter-plots). A gene table must be used in the experiment in order for the plot parameters csv to be usable. The first column of the csv should consist of any number of class names identical to those found in the gene table. Points (genes) corresponding to these classes can be colored, re-sized, or both in the mean reads scatter plots. If "Point Colors Only" is selected as the plot parameters method, the second column of the table should consist of hex color values corresponding to each class (ex. "#D95F02"). If "Point Sizes Only" is selected as the plot parameters method, the second column of the table should consist of numeric values between 0.1 and 1.0 that describe the point sizes for genes of the corresponding class (default size is 0.5). If "Full Table" is selected as the plot parameters method, then the second column of the csv should consist of point colors and the third column should consist of point sizes. An example plot parameters csv can be seen here. 
+The plot parameters csv is used to customize [Mean Reads Scatter Plots](#mean-reads-scatter-plots). A gene table must be used in the experiment in order for the plot parameters csv to be usable. The first column of the csv should consist of any number of class names identical to those found in the gene table. Points (genes) corresponding to these classes can be colored, re-sized, or both in the mean reads scatter plots. If "Point Colors Only" is selected as the plot parameters method, the second column of the table should consist of hex color values corresponding to each class (ex. "#D95F02"). If "Point Sizes Only" is selected as the plot parameters method, the second column of the table should consist of numeric values between 0.1 and 1.0 that describe the point sizes for genes of the corresponding class (default size is 0.5). If "Full Table" is selected as the plot parameters method, then the second column of the csv should consist of point colors and the third column should consist of point sizes. An example plot parameters csv can be seen [here](plot_parameters.csv), and a preview is shown below. 
+
+| point_class   | point_colors | point_sizes  |
+|---------------|--------------|--------------|
+| ALG           | #D95F02      | 0.7          |
+| ...           | ...          | ...          |
 
 ## Output
 
