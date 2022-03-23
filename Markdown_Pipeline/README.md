@@ -87,6 +87,8 @@ The parameters YAML file contains the details of the experimental configuration,
 - heatmap_type: options include "Complete", "Class-Separated: All Classes", and "Class-Separated: Selected Classes". See [Heatmap](#heatmap).
 - heatmap_selected_classes: comma-separated list of classes for which heatmaps will be generated if the heatmap type is "Class-Separated: Selected Classes"
 
+An example of the parameters YAML can be seen here.
+
 ### Metadata CSV
 
 The metadata csv summarizes the experimental design and provides information to the DESeq2 analysis. The first column of the metadata csv should include counts file names corresponding to each sample. If the software method being used is "Counts Matrix" or "tiny RNA" then the first column can consist of either arbitrary/empty strings or name of the counts matrix repeated on each row. The second column of the metadata csv describes specific replicates for each sample in the experiment (ex. "WT_1","prg-1_2", etc.). The third column describes the condition associated with each of the samples/replicates in the previous column (ex. simply "WT" or "prg-1"). The fourth column of the csv consists of logical values (TRUE/FALSE) describing whether each sample belongs to a control group/condition. An example of the metadata csv can be viewed here.
@@ -105,13 +107,19 @@ The plot parameters csv is used to customize [Mean Reads Scatter Plots](#mean-re
 
 Results tables display the gene-wise counts from each replicate in a given contrast, followed by the fold change value of each gene and the associated p-value (adjusted) of the negative binomial hypothesis test conducted by DESeq2. Lower p-values indicate a lower probability of the null hypothesis that counts between the two conditions are derived from the same distributional parameters. Furthermore, any common gene names and/or classes from an uploaded gene table will be included in columns beside the Gene ID column. In addition to pdf outputs, these tables are rendered within the markdown file as html widgets with <strong>sorting, searching, and page size customization</strong> features.
 
+![Results Table](Example_Plots/Example_Results_Table.png)
+
 ### PCA Plot
 
 The PCA plot displays loadings of the first two principal components for each sample/biological replicate in the experimental design. Colored by experimental condition, the points of the PCA plot provide a visualization of clustering amongst the samples, both within conditions and across conditions.
 
+![PCA Plot](Example_Plots/Example_PCA_Plot.jpg)
+
 ### Intra-Condition Scatter Plot
 
 The Intra-Condition Scatter Plots display log2 counts between pairs of biological replicates within each condition of the experimental design. Any counts in the data below 1 are replaced with a value of 1 to simplify the log2 transformation. All replicate pairs in each condition are displayed.
+
+![Intra-Condition Scatter Plot](Example_Plots/Example_Intra_Condition.jpg)
 
 ### Mean Reads Scatter Plots
 
@@ -119,17 +127,27 @@ The Mean Reads Scatter Plots display average log2 counts across biological repli
 
 The mean reads scatter plots can be customized by changing the <strong>p-value</strong> and <strong>fold change</strong> thresholds for distinguishing statistically significant genes. The points of the plot can also be <strong>colored and sized</strong> according to their gene classes as specified by the <strong>gene table</strong>. If no gene table has been selected/uploaded, only the p-value and fold change thresholds will be customizable. If a gene table has been selected/uploaded, a plot parameters csv can be selected from the working directory. 
 
+![Mean Reads Scatter Plot](Example_Plots/Example_prg-1_vs_N2_Mean_Reads.jpg)
+
 ### MA Plots
 
 The Standard MA Plots are built from the DESeq2 package and display the fold change of a gene over its mean counts value (normalized) for a provided contrast between experimental conditions. Genes with a statistically significant p-value (p < 0.05) are colored in <strong>blue</strong>.
+
+![MA Plot](Example_Plots/Example_prg-1_vs_N2_MA_Plot.jpg)
 
 ### Heatmap
 
 The <strong>Complete</strong> heatmap shows log2 counts across all samples for any genes above a certain mean count threshold of three (meaning an average of eight counts across all samples). Using the package <strong>heatmaply</strong>, an interactive html widget is rendered with <strong>draggable zooming, panning, and hover text</strong> features. To reset the heatmap axes, the home button in the top right corner of the widget can be pressed. Darker blue cells indicate lower log2 counts values, while darker red cells indicate higher log2 counts values. Furthermore, rows (genes) are clustered using the complete hierarchical clustering method in R (hclust) with eudclidean distances.
 
+![Complete Heatmap](Example_Plots/Example_Heatmap_Complete.png)
+
 The <strong>Class-Separated: All Classes</strong> heatmap relies on the gene table to map all genes with an associated class. Such genes are grouped alphabetically by class and clustered hierarchically within their respective group. Hover text indicates the class assigned to each gene.
 
+![All Classes Heatmap](Example_Plots/Example_Heatmap_All_Classes.png)
+
 The <strong>Class-Separated: Selected Classes</strong> heatmap produces subplots for each class listed in the associated yaml parameter entry.Heatmaps for each listed class are scaled according to the limits of the complete heatmap, although cell sizes are scaled according to the number of genes associated with each class. 
+
+![Complete Heatmap](Example_Plots/Example_Heatmap_Selected_Classes.png)
 
 ## Authors
 
