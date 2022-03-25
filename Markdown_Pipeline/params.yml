@@ -1,0 +1,104 @@
+---
+
+#-- INITIALIZATION PARAMETERS: MONTGOMERY DESEQ2 PIPELINE --#
+
+##-- Use this file to set R Markdown parameters and customize the pipeline's execution --##
+##-- Follow the instructions to change each parameter from the default settings --##
+
+#-- EXPERIMENT ID --#
+
+##-- Short, distinguishing character string for a particular experimental run --##
+##-- Will be included in file names of all saved plots --##
+##-- No special characters or spaces --##
+experiment_id: "Example"
+
+
+#-- TABULATION SOFTWARE --#
+
+##-- Options: "Counts Matrix", "tiny RNA", "rsem", "HTSeq", "Salmon", "Kallisto" --##
+software_method: "Counts Matrix"
+
+##-- File name of counts matrix (if software method is "Counts Matrix" or "tiny RNA") --##
+counts_matrix: "count_matrix.csv"
+
+
+#-- METADATA --#
+
+##-- File name of metadata file --##
+metadata: "metadata.csv"
+
+
+#-- GENE TABLE --#
+
+##-- An imported gene table can include gene IDs and their common names, their feature classes, or both --##
+##-- Options: "Full Table", "Common Names Only", "Gene Class Only", "No Table" --##
+gene_table_method: "Full Table"
+
+##-- File name of gene table (if applicable) --##
+gene_table: "gene_table.csv"
+
+
+#-- RESULTS TABLES --#
+
+##-- Choose whether or not to generate and save results tables --##
+##-- Options: TRUE or FALSE --##
+generate_results_tables: TRUE
+
+
+#-- PCA PLOT --#
+
+##-- Choose whether or not to generate and save the pca plot --##
+##-- Options: TRUE or FALSE --##
+generate_pca: TRUE
+
+
+#-- INTRA-CONDITION SCATTER PLOTS --#
+
+##-- Choose whether or not to generate and save intra-condition scatter plots --##
+##-- Options: TRUE or FALSE --##
+generate_intra_condition: TRUE
+
+
+#-- MEAN READS SCATTER PLOTS --#
+
+##-- Choose whether or not to generate and save mean reads scatter plots --##
+##-- Options: TRUE or FALSE --##
+generate_mean_reads: TRUE
+
+##-- Threshold for classifying significant genes by p-value --##
+##-- Numeric value between 0.01 and 0.1 --##
+p_value_threshold: 0.05
+
+##-- Threshold for classifying significant genes by fold change --##
+##-- Numeric value between 1.1 and 2.0 --##
+fold_change_threshold: 1.3
+
+##-- An imported plot parameters csv can include gene classes and their point colors, their point sizes, or both --##
+##-- Options: "Full Table", "Point Colors Only", "Point Sizes Only", "No Table" --##
+plot_parameters_method: "Full Table"
+
+##-- File name of plot parameters table (if applicable) --##
+plot_parameters: "plot_parameters.csv"
+
+
+#-- MA PLOTS --#
+
+##-- Choose whether or not to generate and save ma plots --##
+##-- Options: TRUE or FALSE --##
+generate_ma: TRUE
+
+
+#-- HEATMAP --#
+
+##-- Choose whether or not to generate and save the heatmap --##
+##-- Options: TRUE or FALSE --##
+generate_heatmap: TRUE
+
+##-- Choose the type of heatmap to be produced --##
+##-- Options: "Complete", "Class-Separated: All Classes", "Class-Separated: Selected Classes" --##
+heatmap_type: "Class-Separated: Selected Classes"
+
+##-- Comma-separated list of classes for which heatmaps will be generated --##
+heatmap_selected_classes: "ALG,WAGO,CSR"
+
+---
