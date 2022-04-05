@@ -10,7 +10,7 @@
   - [Parameters YAML](#parameters-yaml)
   - [Metadata CSV](#metadata-csv)
   - [Gene Table](#gene-table)
-  - [Plot Parameters CSV](#plot-parameters-csv)
+  - [Class Parameters CSV](#class-parameters-csv)
 - [Output](#output)
   - [Results Tables](#results-tables)
   - [PCA Plot](#pca-plot)
@@ -80,16 +80,20 @@ The parameters YAML file contains the details of the experimental configuration,
 - generate_pca: TRUE or FALSE logical value describing whether the [PCA Plot](#pca-plot) should be rendered and saved.
 - generate_intra_condition: TRUE or FALSE logical value describing whether the [Intra-Condition Scatter Plot](#intra-condition-scatter-plot) should be rendered and saved.
 - generate_mean_reads: TRUE or FALSE logical value describing whether the [Mean Reads Scatter Plots](#mean-reads-scatter-plots) should be rendered and saved.
+- save_mean_reads_interactive: TRUE or FALSE logical value describing whether or not to save interactive html versions of mean reads scatter plots
 - p_value_threshold: numeric value threshold for classifying significant genes by p-value (between 0.01 and 0.1 for best results).
 - fold_change_threshold: numeric value threshold for classifying significant genes by fold change (between 1.1 and 2.0 for best results).
-- plot_parameters_method: options include "Full Table", "Point Colors Only", "Point Sizes Only", and "No Table". see [Plot Parameters CSV](#plot-parameters-csv).
-- plot_parameters: a string describing the file path for the plot parameters csv, if applicable.
+- lower_transparency: numeric value between 0.1 and 1.0 describing the transparency level (alpha level) for insignificant genes. Values closer to 0 produce more transparent points. 
+- upper_transparency: numeric value between 0.1 and 1.0 describing the transparency level (alpha level) for significant genes. Values closer to 0 produce more transparent points. 
+- customize_by_class: TRUE or FALSE logical value describing whether mean reads scatter plots should be customized by their classes, as listed in the gene table. Note that a gene table must be imported in order to customize by class. see [Class Parameters CSV](#class-parameters-csv).
+- customize_by_significance: TRUE or FALSE logical value describing whether points representing insignificant genes should be colored grey. Otherwise, all points will be colored, and their p-value significance will be distinguished only by transparency.
+- class_parameters: a string describing the file path for the plot parameters csv, if applicable. If left as an empty string, a default class parameters csv will be generated including all classes listed in the gene table. 
 - generate_ma: TRUE or FALSE logical value describing whether the [MA Plots](#ma-plots) should be rendered and saved.
 - generate_heatmap: TRUE or FALSE logical value describing whether the [Heatmap](#heatmap) should be rendered and saved.
 - heatmap_type: options include "Complete", "Class-Separated: All Classes", and "Class-Separated: Selected Classes". See [Heatmap](#heatmap).
 - heatmap_selected_classes: comma-separated list of classes for which heatmaps will be generated if the heatmap type is "Class-Separated: Selected Classes"
 
-An example of the parameters YAML can be seen [here](params.yml).
+An example of the parameters YAML with default settings can be seen [here](params.yml).
 
 ### Metadata CSV
 
@@ -110,9 +114,9 @@ The gene table is a key component of customizing the pipeline's data analysis an
 | Y53H1C.1  | aat-9       | CSR         |
 | ...       | ...         | ...         |
 
-### Plot Parameters CSV
+### Class Parameters CSV
 
-The plot parameters csv is used to customize [Mean Reads Scatter Plots](#mean-reads-scatter-plots). A gene table must be used in the experiment in order for the plot parameters csv to be usable. The first column of the csv should consist of any number of class names identical to those found in the gene table. Points (genes) corresponding to these classes can be colored, re-sized, or both in the mean reads scatter plots. If <strong>Point Colors Only</strong> is selected as the plot parameters method, the second column of the table should consist of hex color values corresponding to each class (ex. "#D95F02"). If <strong>Point Sizes Only</strong> is selected as the plot parameters method, the second column of the table should consist of numeric values between 0.1 and 1.0 that describe the point sizes for genes of the corresponding class (default size is 0.5). If <strong>Full Table</strong> is selected as the plot parameters method, then the second column of the csv should consist of point colors and the third column should consist of point sizes. An example plot parameters csv can be seen [here](plot_parameters.csv), and a preview is shown below. 
+The class parameters csv is used to customize [Mean Reads Scatter Plots](#mean-reads-scatter-plots). A gene table must be used in the experiment in order for the class parameters csv to be usable. If used, only points/genes corresponding to classes in the table will be plotted. The first column of the csv should consist of any number of class names identical to those found in the gene table. Points (genes) corresponding to these classes can be colored and re-sized in the mean reads scatter plots. The second column of the table should consist of hex color values corresponding to each class (ex. "#D95F02"). The third column of the table should consist of numeric values between 0.1 and 1.0 that describe the cex point sizes for genes of the corresponding class (default size is 0.5). The default class parameters table will color all classes in the gene table according to a standard list of 15 colors, and all classes will be given a size value 0.3. An example plot parameters csv can be seen [here](class_parameters.csv), and a preview is shown below. 
 
 | point_class   | point_colors | point_sizes  |
 |---------------|--------------|--------------|
@@ -141,9 +145,9 @@ The Intra-Condition Scatter Plots display log2 counts between pairs of biologica
 
 ### Mean Reads Scatter Plots
 
-The Mean Reads Scatter Plots display average log2 counts across biological replicates of experimental condition pairs for a provided contrast. Average counts with a value of 0 are assigned the value -4 following the log2 transformation. Guidelines are added to assist with visualization. Statistically significant genes are less transparent than insignificant genes, and they are colored <strong>blue</strong> in default plots. Axes are scaled to more closely resemble the log2 transformation. Unlabeled tick marks, therefore, do not always represent whole number intervals between labeled tick marks. In addition to pdf outputs, Mean Reads Scatter Plots are rendered within the markdown file as html widgets with <strong>draggable zooming, panning, and hover text</strong> features. To reset the scatter plot axes within the widget, the <strong>home</strong> button in the top right corner of the widget can be pressed.
+The Mean Reads Scatter Plots display average log2 counts across biological replicates of experimental condition pairs for a provided contrast. Average counts with a value of 0 are assigned the value -4 following the log2 transformation. Guidelines are added to assist with visualization. Statistically significant genes are less transparent than insignificant genes, and in default plots, they are colored <strong>blue</strong> and sized with a value of <strong>0.5</strong> (insignificant genes are sized with a value of <strong>0.3</strong>). Axes are scaled to more closely resemble the log2 transformation.Unlabeled tick marks, therefore, do not always represent whole number intervals between labeled tick marks. In addition to pdf outputs, Mean Reads Scatter Plots can be saved as html widgets with <strong>draggable zooming, panning, and hover text</strong> features. To reset the scatter plot axes within the widget, the <strong>home</strong> button in the top right corner of the widget can be pressed.
 
-The mean reads scatter plots can be customized by changing the <strong>p-value</strong> and <strong>fold change</strong> thresholds for distinguishing statistically significant genes. The points of the plot can also be <strong>colored and sized</strong> according to their gene classes as specified by the <strong>gene table</strong>. If no gene table has been selected/uploaded, only the p-value and fold change thresholds will be customizable. If a gene table has been selected/uploaded, a plot parameters csv can be selected from the working directory. 
+The mean reads scatter plots can be customized by changing the <strong>p-value</strong> and <strong>fold change</strong> thresholds for distinguishing statistically significant genes. Furthermore, <strong>upper and lower transparency</strong> thresholds can be set for distinguishing statistical significance. The lower threshold corresponds to insignificant genes. The points of the plot can also be <strong>colored and sized</strong> according to their gene classes as specified by the <strong>gene table</strong>. If no gene table has been selected/uploaded, only the p-value, fold change, and transparency thresholds will be customizable. If a gene table has been selected/uploaded, a class parameters csv can be selected from the working directory. If used, only points/genes corresponding to classes in the table will be plotted. If no class parameters csv is selected, every class will be automatically colored from a list of 15 colors, and every point will be sized with a cex value of 0.3. Insignificant genes will be colored grey if the <strong>customize by significance</strong> feature is set to <strong>TRUE</strong>.
 
 <img src=Example_Plots/Example_prg-1_vs_N2_Mean_Reads.jpg width="700" height="600">
 

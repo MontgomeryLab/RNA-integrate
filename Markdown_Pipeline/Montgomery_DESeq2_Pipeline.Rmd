@@ -5,23 +5,27 @@ date: "3/3/2022"
 output: html_document
 params:
   experiment_id: "worm1"
-  software_method: ""
-  counts_matrix: ""
-  metadata: ""
-  gene_table_method: ""
-  gene_table: ""
+  software_method: "Counts Matrix"
+  counts_matrix: "count_matrix.csv"
+  metadata: "metadata.csv"
+  gene_table_method: "Full Table"
+  gene_table: "gene_table.csv"
   generate_results_tables: TRUE
   generate_pca: TRUE
   generate_intra_condition: TRUE
   generate_mean_reads: TRUE
+  save_mean_reads_interactive: FALSE
   p_value_threshold: 0.05
   fold_change_threshold: 1.3
-  plot_parameters_method: ""
-  plot_parameters: ""
+  lower_transparency: 0.2
+  upper_transparency: 0.9
+  customize_by_class: TRUE
+  customize_by_significance: FALSE
+  class_parameters: "class_parameters.csv"
   generate_ma: TRUE
   generate_heatmap: TRUE
-  heatmap_type: ""
-  heatmap_selected_classes: ""
+  heatmap_type: "Complete"
+  heatmap_selected_classes: "ALG,CSR,WAGO"
 ---
 
 ```{r,echo=FALSE,include=FALSE,warning=FALSE}
@@ -509,59 +513,65 @@ The Mean Reads Scatter Plots display average log2 counts across biological repli
 Average counts with a value of 0 are assigned the value -4 following the log2 transformation. Guidelines are added to assist with visualization. 
 Statistically significant genes are less transparent than insignificant genes, and they are colored <strong>blue</strong> in default plots. 
 Axes are scaled to more closely resemble the log2 transformation.Unlabeled tick marks, therefore, do not always represent whole number intervals between labeled tick marks. 
-In addition to pdf outputs, Mean Reads Scatter Plots are rendered within the markdown file as html widgets with <strong>draggable zooming, panning, and hover text</strong> features. 
+In addition to pdf outputs, Mean Reads Scatter Plots can be saved as html widgets with <strong>draggable zooming, panning, and hover text</strong> features. 
 To reset the scatter plot axes within the widget, the <strong>home</strong> button in the top right corner of the widget can be pressed.
 
 ## Customization
 
-The mean reads scatter plots can be customized by changing the <strong>p-value</strong> and <strong>fold change</strong> thresholds for distinguishing statistically significant genes. 
+The mean reads scatter plots can be customized by changing the <strong>p-value</strong> and <strong>fold change</strong> thresholds for distinguishing statistically significant genes.
+Furthermore, <strong>upper and lower transparency</strong> thresholds can be set for distinguishing statistical significance. The lower threshold corresponds to insignificant genes.
 The points of the plot can also be <strong>colored and sized</strong> according to their gene classes as specified by the <strong>gene table</strong>.
-If no gene table has been selected/uploaded, only the p-value and fold change thresholds will be customizable. If a gene table has been selected/uploaded, a plot parameters csv 
-can be selected from the working directory. 
+If no gene table has been selected/uploaded, only the p-value, fold change, and transparency thresholds will be customizable. If a gene table has been selected/uploaded, a class parameters csv 
+can be selected from the working directory. If used, only points/genes corresponding to classes in the table will be plotted. 
+If no class parameters csv is selected, every class will be automatically colored from a list of 15 colors, and every point will be sized with a cex value of 0.3. 
+Insignificant genes will be colored grey if the <strong>customize by significance</strong> feature is set to <strong>TRUE</strong>.
 
 ```{r,include=FALSE,message=FALSE,warning=FALSE}
 
-# Conditional Plot Parameters Import
-if (params$plot_parameters_method == "No Table") {plot_parameters = NULL} else {plot_parameters = read.csv(params$plot_parameters)}
-
-# Conditional Nullification of Plot Parameters
-if (params$gene_table_method == "No Table" | params$gene_table_method == "Common Names Only") {plot_parameters = NULL}
+# Conditional Class Parameters Generation or Import
+if (params$customize_by_class == FALSE | params$gene_table_method == "No Table" | params$gene_table_method == "Common Names Only") {
+  
+  # Conditional Nullification of Class Parameters
+  class_parameters = NULL
+  
+} else {
+  if (params$class_parameters == "") {
+    
+    # Default Colors List
+    class_colors = c("#1F78B4","#1B9E77","#33A02C","#014421","#E6AB02","#FF7F00","#FF9E84","#8B0000",
+                     "#E31A1C","#E7298A","#6A3D9A","#907567","#A6761D","#525252","#000000")
+    
+    # Default Table Generation
+    class_parameters = data.frame(point_class = levels(as.factor(class_names)),
+                                  point_colors = rep(class_colors,ceiling(length(levels(as.factor(class_names)))/length(class_colors)))[1:length(levels(as.factor(class_names)))],
+                                  point_sizes = rep(0.3,length(levels(as.factor(class_names)))))
+    
+    # Default Table Saving
+    write.csv(class_parameters,paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+                                      experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),"class_parameters.csv"),row.names = FALSE)
+    
+  } else {
+    
+    # Custom Table Import
+    class_parameters = read.csv(params$class_parameters)
+  }
+}
 
 # Plot Parameter Values Preparation
-if (is.null(plot_parameters)) {
+if (is.null(class_parameters)) {
   
   # No Plot Parameters Option
   point_color = NULL
   point_size = NULL
   
 } else {
-  if (params$plot_parameters_method == "Point Colors Only") {
+  
+  # Full Plot Parameters Option
+  point_color = class_parameters[,2]
+  names(point_color) = class_parameters[,1]
+  point_size = class_parameters[,3]
+  names(point_size) = class_parameters[,1]
     
-    # Point Colors Only Option
-    point_color = plot_parameters[,2]
-    names(point_color) = plot_parameters[,1]
-    point_color = c(point_color,"other" = "#D3D3D3")
-    point_size = NULL
-    
-  } else if (params$plot_parameters_method == "Point Sizes Only") {
-    
-    # Point Sizes Only Option
-    point_color = NULL
-    point_size = plot_parameters[,2]
-    names(point_size) = plot_parameters[,1]
-    point_size = c(point_size,"other" = 0.5)
-    
-  } else if (params$plot_parameters_method == "Full Table") {
-    
-    # Full Plot Parameters Option
-    point_color = plot_parameters[,2]
-    names(point_color) = plot_parameters[,1]
-    point_color = c(point_color,"other" = "#D3D3D3")
-    point_size = plot_parameters[,3]
-    names(point_size) = plot_parameters[,1]
-    point_size = c(point_size,"other" = 0.5)
-    
-  }
 }
 
 # Average Counts Table Assembly
@@ -573,6 +583,11 @@ for (i in levels(as.factor(metadata[,3]))) {
 # Replace Infinite Values With -4
 cts_avg = replace(cts_avg,cts_avg=='-Inf',-4)
 
+# Isolate Specific Classes
+if (!is.null(class_parameters)) {
+  cts_avg = cts_avg[intersect(names(class_names[class_names %in% class_parameters[,1]]),names(cts_names)),]
+}
+
 # Assign Appropriate Column Names
 colnames(cts_avg) = levels(as.factor(metadata[,3]))
 
@@ -580,12 +595,13 @@ colnames(cts_avg) = levels(as.factor(metadata[,3]))
 mean_reads_input = function(res,group1,group2) {
   
   # Significant Genes Classification
+  res = res[rownames(cts_avg),]
   res_sig = as.data.frame(subset(res,padj < params$p_value_threshold & abs(log2FoldChange) > log2(params$fold_change_threshold)))
   
   # GGplot2 Aesthetic Variables
   x = cts_avg[,group1]
   y = cts_avg[,group2]
-  n = cts_names
+  n = cts_names[rownames(cts_avg)]
   
   # Point Significance Variable
   point_sig = rownames(cts_avg) %in% rownames(res_sig)
@@ -601,11 +617,20 @@ mean_reads_input = function(res,group1,group2) {
     
   } else {
     
-    # Customized Point Colors
-    color_class = class_names[names(n)]
-    color_class = replace(color_class,-which(color_class %in% names(point_size)),"other")
-    color_levels = point_color
-    
+    if (params$customize_by_significance == TRUE) {
+      
+      # Significance-Customized Point Colors
+      color_class = paste0(c("p < 0.05","p > 0.05")[2-point_sig])
+      color_class[color_class == "p < 0.05"] = class_names[names(n)[color_class == "p < 0.05"]]
+      color_levels = c("p > 0.05" = "#D3D3D3",point_color)
+      
+    } else {
+      
+      # Fully Customized Point Colors
+      color_class = class_names[names(n)]
+      color_levels = point_color
+      
+    }
   }
   
   # Point Sizes Assignment
@@ -613,13 +638,12 @@ mean_reads_input = function(res,group1,group2) {
     
     # Default Point Sizes
     size_class = paste0(c("p < 0.05","p > 0.05")[2-point_sig])
-    size_levels = c(0.7,0.5)
+    size_levels = c(0.5,0.3)
     
   } else {
     
     # Customized Point Sizes
     size_class = class_names[names(n)]
-    size_class = replace(size_class,-which(size_class %in% names(point_size)),"other")
     size_levels = point_size
     
   }
@@ -650,14 +674,16 @@ mean_reads_input = function(res,group1,group2) {
   mean_reads = ggplot(points_data,aes(x,y)) + 
     
     # Point Plotting, Sizing, Coloring, and Text Addition
-    geom_point(aes(color = factor(color_class),size = factor(size_class),alpha = factor(point_sig),
+    geom_point(aes(color = factor(color_class),size = factor(size_class),alpha = factor(point_sig),shape = factor(20),
                    text = paste0(group1,": ",round(x,digits = 3),"<br>",
                                  group2,": ",round(y,digits = 3),"<br>",n))) + 
     
     # Color, Size, and Transparency Levels
     scale_color_manual(values = color_levels,name = "Feature Class") + 
     scale_size_manual(values = size_levels,guide = "none") +
-    scale_alpha_manual(values = c(0.2,0.8),name = "Significance",labels = c("p > 0.05","p < 0.05")) +
+    scale_alpha_manual(values = c(params$lower_transparency,params$upper_transparency),
+                       name = "Significance",labels = c("p > 0.05","p < 0.05")) +
+    scale_shape(guide = "none") + 
     
     # Guide Lines
     geom_abline(intercept = 0,slope = 1,color = "grey60") + 
@@ -691,13 +717,31 @@ mean_reads_input = function(res,group1,group2) {
 # Plot Saving
 if (params$generate_mean_reads == TRUE) {
   for (i in 1:length(combinations[1,])){
+    
+    # Save PDF plots if applicable
+    mean_reads_plot = mean_reads_input(res[[i]],combinations[1,i],combinations[2,i])
     pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
                experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),
                combinations[2,i],"_vs_",combinations[1,i],"_Mean_Reads.pdf"),
         title = paste0(experiment_id," ",combinations[2,i]," vs ",combinations[1,i]," Mean Reads Scatter Plot"),
         height = 6.5,width = 8)
-    print(mean_reads_input(res[[i]],combinations[1,i],combinations[2,i]))
+    print(mean_reads_plot)
     dev.off()
+    
+    if (params$save_mean_reads_interactive == TRUE) {
+      
+      # Save interactive Plots if applicable
+      htmlwidgets::saveWidget(ggplotly(mean_reads_plot,tooltip = "text",width = 1000,height = 650),
+                              file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+                                            experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),
+                                            combinations[2,i],"_vs_",combinations[1,i],"_Mean_Reads.html"))
+      
+      # Remove accessory mean reads files
+      unlink(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+                    experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),
+                    combinations[2,i],"_vs_",combinations[1,i],"_Mean_Reads_files/"),recursive = TRUE)
+      
+    }
   }
 }
 
@@ -716,7 +760,7 @@ if (params$generate_mean_reads == FALSE) {
 for (i in 1:length(combinations[1,])) {
   if (params$generate_mean_reads == TRUE) {
     mean_reads_out = c(mean_reads_out,knit_expand(text = paste0("### ",combinations[2,i],' vs ',combinations[1,i])))
-    mean_reads_out = c(mean_reads_out,knit_expand(text = "```{r mean-reads{{i}},echo=FALSE,warning=FALSE}\n ggplotly(mean_reads_input(res[[{{i}}]],combinations[1,{{i}}],combinations[2,{{i}}]),tooltip = 'text',width = 1000,height = 650)\n```\n"))
+    mean_reads_out = c(mean_reads_out,knit_expand(text = "```{r mean-reads{{i}},echo=FALSE,warning=FALSE,fig.height=6.5,fig.width=8}\n mean_reads_input(res[[{{i}}]],combinations[1,{{i}}],combinations[2,{{i}}]) \n```\n"))
   } else {
     mean_reads_out = c(mean_reads_out,"")
   }
@@ -757,18 +801,30 @@ if (params$generate_ma == TRUE) {
 
 ```
 
-```{r,echo=FALSE,warning=FALSE,fig.height=6.5,fig.width=6.5,results='asis'}
+```{r ma-out,include=FALSE}
 
 # Incorporate plots into html output
-if (params$generate_ma == TRUE) {
-  for (i in 1:length(combinations[1,])){
-    ma_input(res[[i]],combinations[1,i],combinations[2,i])
+ma_out = NULL
+
+# Pass message to HTML output if plots are not marked for rendering
+if (params$generate_ma == FALSE) {
+  ma_out = "MA Plots not marked for rendering"
+}
+
+for (i in 1:length(combinations[1,])) {
+  if (params$generate_ma == TRUE) {
+    ma_out = c(ma_out,knit_expand(text = paste0("### ",combinations[2,i],' vs ',combinations[1,i])))
+    ma_out = c(ma_out,knit_expand(text = "```{r ma{{i}},echo=FALSE,warning=FALSE,fig.height=6.5,fig.width=6.5}\n ma_input(res[[{{i}}]],combinations[1,{{i}}],combinations[2,{{i}}]) \n```\n"))
+  } else {
+    mean_reads_out = c(mean_reads_out,"")
   }
-} else {
-  cat("MA Plots not marked for rendering")
 }
 
 ```
+
+## Rendered Plots {.tabset}
+
+`r paste(knit(text = ma_out),collapse = '\n')`
 
 \newpage
 
