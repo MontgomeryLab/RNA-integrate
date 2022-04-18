@@ -15,8 +15,8 @@ experiment_id: "Example"
 
 #-- TABULATION SOFTWARE --#
 
-##-- Options: "Counts Matrix", "tiny RNA", "rsem", "HTSeq", "Salmon", "Kallisto" --##
-software_method: "Counts Matrix"
+##-- Options: "counts_matrix", "tiny_rna", "rsem", "htseq", "salmon", "kallisto" --##
+software_method: "counts_matrix"
 
 ##-- File name of counts matrix (if software method is "Counts Matrix" or "tiny RNA") --##
 counts_matrix: "count_matrix.csv"
@@ -31,8 +31,8 @@ metadata: "metadata.csv"
 #-- GENE TABLE --#
 
 ##-- An imported gene table can include gene IDs and their common names, their feature classes, or both --##
-##-- Options: "Full Table", "Common Names Only", "Gene Class Only", "No Table" --##
-gene_table_method: "Full Table"
+##-- Options: "full_table", "common_names_only", "gene_class_only", "no_table" --##
+gene_table_method: "full_table"
 
 ##-- File name of gene table (if applicable) --##
 gene_table: "gene_table.csv"
@@ -116,8 +116,8 @@ generate_ma: TRUE
 generate_heatmap: TRUE
 
 ##-- Choose the type of heatmap to be produced --##
-##-- Options: "Complete", "Class-Separated: All Classes", "Class-Separated: Selected Classes" --##
-heatmap_type: "Complete"
+##-- Options: "complete", "all_classes", "selected_classes" --##
+heatmap_type: "complete"
 
 ##-- Comma-separated list of classes for which heatmaps will be generated --##
 heatmap_selected_classes: "ALG,WAGO,CSR"

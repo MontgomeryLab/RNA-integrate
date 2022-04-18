@@ -75,10 +75,10 @@ yaml::write_yaml(params,paste0(format(Sys.Date(),format = "%d_%m_%y_"),params$ex
 # Tabulation Software, Counts Files, and Metadata
 
 # Conditional Import of Counts Matrix
-if (params$software_method == "Counts Matrix") {counts_matrix = read.csv(params$counts_matrix)} else {counts_matrix = NULL}
+if (params$software_method == "counts_matrix") {counts_matrix = read.csv(params$counts_matrix)} else {counts_matrix = NULL}
 
 # Conditional Import of tiny RNA Matrix
-if (params$software_method == "tiny RNA") {tiny_rna_matrix = read.csv(params$counts_matrix)} else {tiny_rna_matrix = NULL}
+if (params$software_method == "tiny_rna") {tiny_rna_matrix = read.csv(params$counts_matrix)} else {tiny_rna_matrix = NULL}
 
 # Import Metadata File
 metadata = read.csv(params$metadata)
@@ -181,20 +181,20 @@ sample_table = data.frame(condition = as.factor(metadata[,3]))
 rownames(sample_table) = metadata[,2]
 
 # Conditional DESeq Data Import Calls
-if (params$software_method == "HTSeq") {
+if (params$software_method == "htseq") {
   
   # HTSeq Option
   metadata_htseq = data.frame(sampleName = metadata[,2],fileName = metadata[,1],condition = factor(metadata[,3]))
   dds = DESeqDataSetFromHTSeqCount(metadata_htseq,getwd(),~condition)
   
-} else if (params$software_method == "Counts Matrix") {
+} else if (params$software_method == "counts_matrix") {
   
   # Counts Matrix/FeatureCounts Option
   counts_matrix = counts_matrix_prep(counts_matrix)
   colnames(counts_matrix) = rownames(sample_table)
   dds = DESeqDataSetFromMatrix(counts_matrix,sample_table,~condition)
   
-} else if (params$software_method == "tiny RNA") {
+} else if (params$software_method == "tiny_rna") {
   
   # tiny RNA Option
   tiny_rna_matrix = tiny_rna_matrix_prep(tiny_rna_matrix)[,-c(1,2)]
@@ -249,9 +249,9 @@ for (i in 1:length(combinations[1,])) {
 ```{r,include=FALSE,message=FALSE}
 
 # Conditional Gene Table Import
-if (params$software_method == "tiny RNA") {
+if (params$software_method == "tiny_rna") {
   gene_table = tiny_rna_matrix_prep(tiny_rna_matrix)[,c(1,2)]
-} else if (params$gene_table_method == "No Table") {
+} else if (params$gene_table_method == "no_table") {
   gene_table = NULL
 } else {
   gene_table = read.csv(params$gene_table)
@@ -265,7 +265,7 @@ if (is.null(gene_table)) {
   class_names = NULL
   
 } else {
-  if (params$gene_table_method == "Full Table" | params$software_method == "tiny RNA") {
+  if (params$gene_table_method == "full_table" | params$software_method == "tiny_rna") {
     
     # Full Gene Table Option
     common_names = repeated_values_solver(gene_table[,2])
@@ -273,14 +273,14 @@ if (is.null(gene_table)) {
     class_names = gene_table[,3]
     names(class_names) = repeated_values_solver(gene_table[,1])
   
-  } else if (params$gene_table_method == "Common Names Only") {
+  } else if (params$gene_table_method == "common_names_only") {
     
     # Common Names Only Option
     common_names = repeated_values_solver(gene_table[,2])
     names(common_names) = repeated_values_solver(gene_table[,1])
     class_names = NULL
     
-  } else if (params$gene_table_method == "Gene Class Only") {
+  } else if (params$gene_table_method == "gene_class_only") {
     
     # Gene Class Only Option
     common_names = NULL
@@ -370,7 +370,7 @@ if (params$generate_results_tables == TRUE) {
   for (i in 1:length(combinations[1,])){
     write.csv(results_table(res[[i]],combinations[1,i],combinations[2,i]),
               paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
-                     experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),
+                     format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_",
                      combinations[2,i],"_vs_",combinations[1,i],"_Results.csv"))
   }
 }
@@ -431,7 +431,7 @@ pca_input = function() {
 # Plot Saving
 if (params$generate_pca == TRUE) {
   pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
-             experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),"PCA_Plot.pdf"),
+             format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_PCA_Plot.pdf"),
       title = paste0(experiment_id," PCA Plot"),
       height = 6.5,width = 8)
   print(pca_input())
@@ -485,7 +485,7 @@ intra_condition_input = function() {
 # Plot Saving
 if (params$generate_intra_condition == TRUE) {
   pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
-             experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),"Intra_Condition.pdf"),
+             format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_Intra_Condition.pdf"),
       title = paste0(experiment_id," Intra Condition Scatter Plot"),
       height = 6.5,width = 8)
   print(intra_condition_input())
@@ -529,7 +529,7 @@ Insignificant genes will be colored grey if the <strong>customize by significanc
 ```{r,include=FALSE,message=FALSE,warning=FALSE}
 
 # Conditional Class Parameters Generation or Import
-if (params$customize_by_class == FALSE | params$gene_table_method == "No Table" | params$gene_table_method == "Common Names Only") {
+if (params$customize_by_class == FALSE | params$gene_table_method == "no_table" | params$gene_table_method == "common_names_only") {
   
   # Conditional Nullification of Class Parameters
   class_parameters = NULL
@@ -721,7 +721,7 @@ if (params$generate_mean_reads == TRUE) {
     # Save PDF plots if applicable
     mean_reads_plot = mean_reads_input(res[[i]],combinations[1,i],combinations[2,i])
     pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
-               experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),
+               format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_",
                combinations[2,i],"_vs_",combinations[1,i],"_Mean_Reads.pdf"),
         title = paste0(experiment_id," ",combinations[2,i]," vs ",combinations[1,i]," Mean Reads Scatter Plot"),
         height = 6.5,width = 8)
@@ -733,12 +733,12 @@ if (params$generate_mean_reads == TRUE) {
       # Save interactive Plots if applicable
       htmlwidgets::saveWidget(ggplotly(mean_reads_plot,tooltip = "text",width = 1000,height = 650),
                               file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
-                                            experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),
+                                            format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_",
                                             combinations[2,i],"_vs_",combinations[1,i],"_Mean_Reads.html"))
       
       # Remove accessory mean reads files
       unlink(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
-                    experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),
+                    format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_",
                     combinations[2,i],"_vs_",combinations[1,i],"_Mean_Reads_files/"),recursive = TRUE)
       
     }
@@ -790,7 +790,7 @@ ma_input = function(res,group1,group2) {
 if (params$generate_ma == TRUE) {
   for (i in 1:length(combinations[1,])){
     pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
-               experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),
+               format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_",
                combinations[2,i],"_vs_",combinations[1,i],"_MA_Plot.pdf"),
         title = paste0(experiment_id," ",combinations[2,i]," vs ",combinations[1,i]," MA Plot"),
         height = 6.5,width = 6.5)
@@ -851,12 +851,12 @@ although cell sizes are scaled according to the number of genes associated with 
 heatmap_type = params$heatmap_type
 
 # Conditional Separation of Heatmap Classes String
-if (heatmap_type == "Class-Separated: Selected Classes") {
+if (heatmap_type == "selected_classes") {
   heatmap_selected_classes = strsplit(params$heatmap_selected_classes,",")[[1]]
 }
 
 # Conditional Reversion of Heatmap Type to "Complete"
-if (params$gene_table_method == "No Table" | params$gene_table_method == "Common Names Only") {heatmap_type = "Complete"}
+if (params$gene_table_method == "no_table" | params$gene_table_method == "common_names_only") {heatmap_type = "complete"}
 
 # Heatmap Matrix Generation
 cts_heat = log2(cts)[which(rowMeans(log2(cts)) >= 3),]
@@ -990,30 +990,30 @@ selected_classes_heatmap = function() {
 
 # Conditional Heatmap Saving
 if (params$generate_heatmap == TRUE) {
-  if (heatmap_type == "Complete") {
+  if (heatmap_type == "complete") {
     
     # Complete Heatmap Plot Saving
     htmlwidgets::saveWidget(complete_heatmap(),file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
-                                                             experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),"Heatmap.html"))
+                                                             format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_Heatmap.html"))
     
-  } else if (heatmap_type == "Class-Separated: All Classes") {
+  } else if (heatmap_type == "all_classes") {
     
     # All Classes Heatmap Plot Saving
     htmlwidgets::saveWidget(all_classes_heatmap(),file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
-                                                                experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),"Heatmap.html"))
+                                                                format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_Heatmap.html"))
     
-  } else if (heatmap_type == "Class-Separated: Selected Classes") {
+  } else if (heatmap_type == "selected_classes") {
     
     # Selected Classes Heatmap Plot Saving
     htmlwidgets::saveWidget(selected_classes_heatmap(),file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
-                                                                     experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),"Heatmap.html"))
+                                                                     format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_Heatmap.html"))
     
   }
 }
 
 # Remove accessory heatmap files
 unlink(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
-              experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),"Heatmap_files/"),recursive = TRUE)
+              format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_Heatmap_files/"),recursive = TRUE)
 
 ```
 
@@ -1021,17 +1021,17 @@ unlink(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
 
 # Incorporate plot into html output
 if (params$generate_heatmap == TRUE) {
-  if (heatmap_type == "Complete") {
+  if (heatmap_type == "complete") {
     
     # Complete Heatmap Plot Saving
     complete_heatmap()
     
-  } else if (heatmap_type == "Class-Separated: All Classes") {
+  } else if (heatmap_type == "all_classes") {
     
     # All Classes Heatmap Plot Saving
     all_classes_heatmap()
     
-  } else if (heatmap_type == "Class-Separated: Selected Classes") {
+  } else if (heatmap_type == "selected_classes") {
     
     # Selected Classes Heatmap Plot Saving
     selected_classes_heatmap()
