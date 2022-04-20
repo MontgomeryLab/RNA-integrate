@@ -71,10 +71,10 @@ The following packages are used within the pipeline:
 The parameters YAML file contains the details of the experimental configuration, including a number of plot customization options. The demo params.yml file can be seen here. The following parameters are read from the YAML file during the pipeline's execution:
 
 - experiment_id: a short string with no spaces or special characters that distinguishes a particular experimental run. The experiment id will be included in the names of the output directory and saved files. 
-- software_method: the tabulation software used to produce counts files or a counts matrix. Options include Counts Matrix (FeatureCounts), tiny RNA (developed by the Montgomery Lab - https://github.com/MontgomeryLab/tinyRNA), rsem, HTSeq, Salmon, Kallisto. 
+- software_method: the tabulation software used to produce counts files or a counts matrix. Options include "counts_matrix" (FeatureCounts), "tiny_rna" (developed by the Montgomery Lab - https://github.com/MontgomeryLab/tinyRNA), "rsem", "htseq", "salmon", "kallisto". 
 - counts_matrix: a string describing the file path for the counts matrix or the tiny RNA matrix, if applicable.
 - metadata: a string describing the file path for the [Metadata CSV](#metadata-csv).
-- gene_table_method: options include "Full Table", "Common Names Only", "Gene Class Only", and "No Table". see [Gene Table](#gene-table).
+- gene_table_method: options include "full_table", "common_names_only", "gene_class_only", and "no_table". see [Gene Table](#gene-table).
 - gene_table: a string describing the file path for the gene table, if applicable.
 - generate_results_tables: TRUE or FALSE logical value describing whether [Results Tables](#results-tables) should be rendered and saved.
 - generate_pca: TRUE or FALSE logical value describing whether the [PCA Plot](#pca-plot) should be rendered and saved.
@@ -90,8 +90,8 @@ The parameters YAML file contains the details of the experimental configuration,
 - class_parameters: a string describing the file path for the plot parameters csv, if applicable. If left as an empty string, a default class parameters csv will be generated including all classes listed in the gene table. 
 - generate_ma: TRUE or FALSE logical value describing whether the [MA Plots](#ma-plots) should be rendered and saved.
 - generate_heatmap: TRUE or FALSE logical value describing whether the [Heatmap](#heatmap) should be rendered and saved.
-- heatmap_type: options include "Complete", "Class-Separated: All Classes", and "Class-Separated: Selected Classes". See [Heatmap](#heatmap).
-- heatmap_selected_classes: comma-separated list of classes for which heatmaps will be generated if the heatmap type is "Class-Separated: Selected Classes"
+- heatmap_type: options include "complete", "all_classes", and "selected_classes". See [Heatmap](#heatmap).
+- heatmap_selected_classes: comma-separated list of classes for which heatmaps will be generated if the heatmap type is "selected_classes"
 
 An example of the parameters YAML with default settings can be seen [here](params.yml).
 
@@ -163,11 +163,11 @@ The <strong>Complete</strong> heatmap shows log2 counts across all samples for a
 
 <img src=Example_Plots/Example_Heatmap_Complete.png width="800" height="500">
 
-The <strong>Class-Separated: All Classes</strong> heatmap relies on the gene table to map all genes with an associated class. Such genes are grouped alphabetically by class and clustered hierarchically within their respective group. Hover text indicates the class assigned to each gene.
+The <strong>All Classes</strong> heatmap relies on the gene table to map all genes with an associated class. Such genes are grouped alphabetically by class and clustered hierarchically within their respective group. Hover text indicates the class assigned to each gene.
 
 <img src=Example_Plots/Example_Heatmap_All_Classes.png width="800" height="500">
 
-The <strong>Class-Separated: Selected Classes</strong> heatmap produces subplots for each class listed in the associated yaml parameter entry. Heatmaps for each listed class are scaled according to the limits of the complete heatmap, although cell sizes are scaled according to the number of genes associated with each class. 
+The <strong>Selected Classes</strong> heatmap produces subplots for each class listed in the associated yaml parameter entry. Heatmaps for each listed class are scaled according to the limits of the complete heatmap, although cell sizes are scaled according to the number of genes associated with each class. 
 
 <img src=Example_Plots/Example_Heatmap_Selected_Classes.png width="800" height="500">
 
