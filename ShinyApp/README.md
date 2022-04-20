@@ -68,26 +68,42 @@ The following packages are used within the pipeline:
 
 A <strong>Parameters</strong> tab, shown upon launching the app, walks users through the input parameters necessary for an experimental run. The following list describes the options for each input:
 
+<strong>Initial Setup</strong>
 - Experiment ID: a short string with no spaces or special characters that distinguishes a particular experimental run. The experiment id will be prepended in the names of the output directory and saved files. 
 - Tabulation Software: the tabulation software used to produce counts files or a counts matrix. Options include <strong>Counts Matrix</strong> (FeatureCounts), <strong>tiny RNA</strong> (developed by the Montgomery Lab - https://github.com/MontgomeryLab/tinyRNA), <strong>RSEM</strong>, <strong>HTSeq</strong>, <strong>Salmon</strong>, and <strong>Kallisto</strong>. 
   - Counts Matrix: selection from the working directory of the counts matrix file if the <strong>Tabulation Software</strong> selection is <strong>Counts Matrix</strong> or <strong>tiny RNA</strong>.
+
+<strong>Metadata</strong>
 - Metadata Method: describes whether to use an existing metadata file in the working directory or generate a new metadata file within the app. See [Metadata CSV](#metadata-csv).
-  - Selected Metadata: selection from the working directory of the metadata csv if <strong>Working Directory</strong> is chosen as the <strong>Metadata Method</strong>.
-  - Condition Number: radio button selection of the number of experimental conditions if <strong>Generate new</strong> is chosen as the <strong>Metadata Method</strong>.
-  - Condition Name, Control Status, and Condition Files: prompts users to enter information about each experimental condition if <strong>Generate New</strong> is chosen as the <strong>Metadata Method</strong>. 
+  - If <strong>Working Directory</strong> is chosen as the <strong>Metadata Method</strong>:
+    - Selected Metadata: selection from the working directory of the metadata csv.
+  - If <strong>Generate New</strong> is chosen as the <strong>Metadata Method</strong>:
+    - Condition Number: radio button selection of the number of experimental conditions if <strong>Generate new</strong> is chosen as the <strong>Metadata Method</strong>.
+    - Condition Name, Control Status, and Condition Files: prompts users to enter information about each experimental condition if <strong>Generate New</strong> is chosen as the <strong>Metadata Method</strong>.
+
+<strong>Gene Table</strong>
 - Gene Table Method: describes the type of gene table, if any, that will be imported for the experiment. options include <strong>Full Table</strong>, <strong>Common Names Only</strong>, <strong>Gene Class Only</strong>, and <strong>No Table</strong>. see [Gene Table](#gene-table).
   - Gene Table: selection from the working directory the gene table, unless <strong>No Table</strong> is chosen as the <strong>Gene Table Method</strong>.
+
+<strong>Plot Parameters</strong>
 - Plot Selection: series of checkbox selection describing whether or not to render and save each type of plot, including the [Results Tables](#results-tables), [pca plot](#pca-plot), [intra-condition scatter plot](#intra-condition-scatter-plot), [mean reads scatter plots](#mean-reads-scatter-plots), [ma plots](#ma-plots), and [heatmap](#heatmap)
+
+<strong>Mean Reads Scatter Plots</strong>
 - P-Value Threshold: numeric slider input between 0.01 and 0.1 for classifying significant genes by p-value.
 - Fold Change Threshold: numeric slider input between 1.1 and 2.0 for classifying significant genes by fold change.
 - Lower Transparency: numeric slider input between 0.1 and 1.0 describing the transparency level (alpha level) for insignificant genes. Values closer to 0 produce more transparent points. 
 - Upper Transparency: numeric slider input between 0.1 and 1.0 describing the transparency level (alpha level) for significant genes. Values closer to 0 produce more transparent points. 
 - Customize By Class: checkbox input describing whether mean reads scatter plots should be customized by their classes, as listed in the gene table. Note that a gene table must be imported in order to customize by class. see [Class Parameters CSV](#class-parameters-csv).
-  - Generate Class Parameters: checkbox input describing whether a class parameters csv should be generated within the app.
-  - Class Selection: selection of classes to plot genes for if the <strong>Generate Class Parameters</strong> box is checked. Class options are derived from the factor levels of the class column in the gene table.
-  - Point Color and Point Size: prompts users to enter information about each selected class if the <strong>Generate Class Parameters</strong> box is checked.
-  - Select Class Parameters: selection from working directory of the class parameters csv, unless the <strong>Generate Class Parameters</strong> box is checked. If left blank, a default class parameters csv will be generated including all classes listed in the gene table. 
-- Customize By Significance: checkbox input describing whether points representing insignificant genes should be colored grey if the <strong>Customize_By_Class</strong> box is checked. Otherwise, all points will be colored, and their p-value significance will be distinguished only by transparency.
+  - If <strong>Customize By Class</strong> is checked:
+    - Customize By Significance: checkbox input describing whether points representing insignificant genes should be colored grey. Otherwise, all points will be colored, and their p-value significance will be distinguished only by transparency.
+    - Generate Class Parameters: checkbox input describing whether a class parameters csv should be generated within the app.
+      - If <strong>Generate Class Parameters</strong> is checked:
+        - Class Selection: selection of classes to plot genes for if the <strong>Generate Class Parameters</strong> box is checked. Class options are derived from the factor levels of the class column in the gene table.
+        - Point Color and Point Size: prompts users to enter information about each selected class if the <strong>Generate Class Parameters</strong> box is checked.
+      - If <strong>Generate Class Parameters</strong> is not checked
+        - Select Class Parameters: selection from working directory of the class parameters csv. If left blank, a default class parameters csv will be generated including all classes listed in the gene table.
+
+<strong>Heatmap</strong>
 - Heatmap Type: describes what type of heatmap is to be rendered and saved. Options include <strong>Complete</strong>, <strong>All Classes</strong>, and <strong>Selected Slasses</strong>. See [Heatmap](#heatmap). If no gene table is uploaded, a complete heatmap will be rendered, and the input widget will not be shown. 
   - Selected Classes: multiple selction list of classes for which heatmaps will be generated if the heatmap type is <strong>Selected Classes</strong>. Class options are derived from the factor levels of the class column in the gene table.
 
@@ -125,7 +141,7 @@ The class parameters csv is used to customize [Mean Reads Scatter Plots](#mean-r
 
 Results tables display the gene-wise counts from each replicate in a given contrast, followed by the fold change value of each gene and the associated p-value (adjusted) of the negative binomial hypothesis test conducted by DESeq2. Lower p-values indicate a lower probability of the null hypothesis that counts between the two conditions are derived from the same distributional parameters. Furthermore, any common gene names and/or classes from an uploaded gene table will be included in columns beside the Gene ID column. In addition to csv outputs, these tables are rendered within the app as html widgets with <strong>sorting, searching, and page size customization</strong> features.
 
-<img src=Example_Plots/Example_Results_Table.png width="800" height="500">
+<img src=~Markdown_Pipeline/Example_Plots/Example_Results_Table.png width="800" height="500">
 
 ### PCA Plot
 
