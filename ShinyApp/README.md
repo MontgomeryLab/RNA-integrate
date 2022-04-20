@@ -141,7 +141,7 @@ The class parameters csv is used to customize [Mean Reads Scatter Plots](#mean-r
 
 Results tables display the gene-wise counts from each replicate in a given contrast, followed by the fold change value of each gene and the associated p-value (adjusted) of the negative binomial hypothesis test conducted by DESeq2. Lower p-values indicate a lower probability of the null hypothesis that counts between the two conditions are derived from the same distributional parameters. Furthermore, any common gene names and/or classes from an uploaded gene table will be included in columns beside the Gene ID column. In addition to csv outputs, these tables are rendered within the app as html widgets with <strong>sorting, searching, and page size customization</strong> features.
 
-<img src=~Markdown_Pipeline/Example_Plots/Example_Results_Table.png width="800" height="500">
+<img src=Example_Plots/Example_Results_Table.png width="800" height="500">
 
 ### PCA Plot
 
@@ -161,7 +161,7 @@ The Mean Reads Scatter Plots display average log2 counts across biological repli
 
 The mean reads scatter plots can be customized by changing the <strong>p-value</strong> and <strong>fold change</strong> thresholds for distinguishing statistically significant genes. Furthermore, <strong>upper and lower transparency</strong> thresholds can be set for distinguishing statistical significance. The lower threshold corresponds to insignificant genes. The points of the plot can also be <strong>colored and sized</strong> according to their gene classes as specified by the <strong>gene table</strong>. If no gene table has been selected/uploaded, only the p-value, fold change, and transparency thresholds will be customizable. If a gene table has been selected/uploaded, a class parameters csv can be selected from the working directory or produced within the app. If used, only points/genes corresponding to classes in the table will be plotted. If no class parameters csv is selected, every class will be automatically colored from a default list of 15 colors, and every point will be sized with a cex value of 0.3. Insignificant genes will be colored grey if the <strong>Customize By Significance</strong> box is checked.
 
-<img src=../Example_Plots/Example_prg-1_vs_N2_Mean_Reads.jpg width="700" height="600">
+<img src=Example_Plots/Example_prg-1_vs_N2_Mean_Reads.jpg width="700" height="600">
 
 ### MA Plots
 
