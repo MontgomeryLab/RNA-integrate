@@ -1,0 +1,7 @@
+integrative_experiment_id: integrative_demo
+gene_table: demo_gene_table.csv
+cross_comparisons: ''
+generate_integrative_results_tables: yes
+generate_cosmic_plots: yes
+generate_slope_plots: yes
+slope_plot_classes: ALG,CSR,miRNA,WAGO
