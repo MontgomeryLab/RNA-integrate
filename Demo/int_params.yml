@@ -1,0 +1,158 @@
+---
+
+#-- INITIALIZATION PARAMETERS: MONTGOMERY DESEQ2 PIPELINE --#
+
+##-- Use this file to set R Markdown parameters and customize the pipeline's execution --##
+##-- Follow the instructions to change each parameter from the default settings --##
+
+
+#-- EXPERIMENT ID --#
+
+##-- Short, distinguishing character string for a particular experimental run --##
+##-- Will be included in file names of all saved plots --##
+##-- No special characters or spaces --##
+mrna_experiment_id: "mrna_demo"
+small_rna_experiment_id: "small_rna_demo"
+integrative_experiment_id: "integrative_demo"
+
+
+#-- TABULATION SOFTWARE --#
+
+##-- Options: "counts_matrix", "tiny_rna", "rsem", "htseq", "salmon", "kallisto" --##
+mrna_software_method: "rsem"
+small_rna_software_method: "tiny_rna"
+
+##-- File name of counts matrix (if software method is "Counts Matrix" or "tiny RNA") --##
+mrna_counts_matrix: ""
+small_rna_counts_matrix: "small_rna_counts_matrix.csv"
+
+#-- METADATA --#
+
+##-- File name of metadata file --##
+mrna_metadata: "demo_mrna_metadata.csv"
+small_rna_metadata: "demo_small_rna_metadata.csv"
+
+
+#-- GENE TABLE --#
+
+##-- An imported gene table can include gene IDs and their common names, their feature classes, or both --##
+##-- Options: "full_table", "common_names_only", "gene_class_only", "no_table" --##
+mrna_gene_table_method: "full_table"
+small_rna_gene_table_method: "full_table"
+
+##-- File name of gene table (if applicable) --##
+gene_table: "demo_gene_table.csv"
+
+
+#-- RESULTS TABLES --#
+
+##-- Choose whether or not to generate and save results tables --##
+##-- Options: TRUE or FALSE --##
+generate_results_tables: TRUE
+
+
+#-- PCA PLOT --#
+
+##-- Choose whether or not to generate and save the pca plot --##
+##-- Options: TRUE or FALSE --##
+generate_pca: TRUE
+
+
+#-- INTRA-CONDITION SCATTER PLOTS --#
+
+##-- Choose whether or not to generate and save intra-condition scatter plots --##
+##-- Options: TRUE or FALSE --##
+generate_intra_condition: TRUE
+
+
+#-- MEAN READS SCATTER PLOTS --#
+
+##-- Choose whether or not to generate and save mean reads scatter plots --##
+##-- Options: TRUE or FALSE --##
+generate_mean_reads: TRUE
+
+##-- Choose whether or not to save interactive html versions of mean reads scatter plots --##
+##-- Options: TRUE or FALSE --##
+save_mean_reads_interactive: TRUE
+
+##-- Threshold for classifying significant genes by p-value --##
+##-- Numeric value between 0.01 and 0.1 --##
+p_value_threshold: 0.05
+
+##-- Threshold for classifying significant genes by fold change --##
+##-- Numeric value between 1.1 and 2.0 --##
+fold_change_threshold: 1.3
+
+##-- Transparency level (alpha level) for insignificant genes --##
+##-- Values closer to 0 will cause points to appear more transparent --##
+##-- Numeric value between 0.1 and 1.0 --##
+lower_transparency: 0.2
+
+##-- Transparency level (alpha level) for significant genes --##
+##-- Values closer to 0 will cause points to appear more transparent --##
+##-- Numeric value between 0.1 and 1.0 --##
+upper_transparency: 0.9
+
+##-- A class parameters csv can be used to color and size points (genes) according to their feature class --##
+##-- A gene table must be imported in order to customize mean reads scatter plots by class --##
+##-- Options: TRUE or FALSE --##
+customize_by_class: TRUE
+
+##-- Points representing insignificant genes will be colored grey if the following parameter is set to TRUE --##
+##-- Otherwise, all points will be colored, and their p-value significance will be distinguished only by transparency --##
+##-- Note that insignificant points will always be colored grey in default plots for which customize_by_class is set to FALSE --##
+##-- Options: TRUE or FALSE --##
+customize_by_significance: FALSE
+
+##-- File name of class parameters table (if applicable, leave as empty string ('') to produce default table) --##
+mrna_class_parameters: "demo_class_parameters.csv"
+small_rna_class_parameters: "demo_class_parameters.csv"
+
+
+#-- MA PLOTS --#
+
+##-- Choose whether or not to generate and save ma plots --##
+##-- Options: TRUE or FALSE --##
+generate_ma: TRUE
+
+
+#-- HEATMAP --#
+
+##-- Choose whether or not to generate and save the heatmap --##
+##-- Options: TRUE or FALSE --##
+generate_heatmap: TRUE
+
+##-- Choose the type of heatmap to be produced --##
+##-- Options: "complete", "all_classes", "selected_classes" --##
+heatmap_type: "selected_classes"
+
+##-- Comma-separated list of classes for which heatmaps will be generated --##
+heatmap_selected_classes: "ALG,CSR,WAGO"
+
+
+#-- INTEGRATIVE PARAMETERS --#
+
+##-- Comma-separated List of comparisons for which to produce interactive plots --##
+##-- Comparisons should written in the form 'treatment_vs_control' to compare groups 'treatment' and 'control' --##
+##-- Names of treatment and control groups should be identical to those found in the small RNA and mRNA metadata files --##
+##-- Leave as empty string to produce all comparisons present in both small RNA and mRNA epxerimental runs --##
+cross_comparisons: ""
+
+##-- Choose whether or not to generate and save integrative results tables --##
+##-- Options: TRUE or FALSE --##
+generate_integrative_results_tables: TRUE
+
+##-- Choose whether or not to generate and save cosmic plots --##
+##-- Options: TRUE or FALSE --##
+generate_cosmic_plots: TRUE
+
+##-- Choose whether or not to generate and save slope plots --##
+##-- Options: TRUE or FALSE --##
+generate_slope_plots: TRUE
+
+##-- Comma-separated list of classes for which slope plot lines/combinations will be generated --##
+##-- Classes should be identical to those found in the gene table --##
+##-- Slope Plot classes refer to the classes associated with small RNA genes --##
+slope_plot_classes: "ALG,CSR,miRNA,WAGO"
+
+---
