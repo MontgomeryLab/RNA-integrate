@@ -1,0 +1,1049 @@
+---
+title: "Montgomery DESeq2 Pipeline"
+author: "Dr. Taiowa Montgomery and Spencer Kuhn"
+date: "3/3/2022"
+output: html_document
+params:
+  experiment_id: "small_rna_demo"
+  software_method: "tiny_rna"
+  counts_matrix: "small_rna_counts_matrix.csv"
+  metadata: "demo_small_rna_metadata.csv"
+  gene_table_method: "full_table"
+  gene_table: "demo_gene_table.csv"
+  generate_results_tables: TRUE
+  generate_pca: TRUE
+  generate_intra_condition: TRUE
+  generate_mean_reads: TRUE
+  save_mean_reads_interactive: FALSE
+  p_value_threshold: 0.05
+  fold_change_threshold: 1.3
+  lower_transparency: 0.2
+  upper_transparency: 0.9
+  customize_by_class: TRUE
+  customize_by_significance: FALSE
+  class_parameters: "demo_class_parameters.csv"
+  generate_ma: TRUE
+  generate_heatmap: TRUE
+  heatmap_type: "complete"
+  heatmap_selected_classes: ""
+---
+
+```{r,echo=FALSE,include=FALSE,warning=FALSE}
+
+# Package Installation (if Necessary)
+if (require(knitr) == FALSE) {
+  install.packages("knitr")
+}
+if (require(BiocManager) == FALSE) {
+  install.packages("BiocManager")
+}
+if (require(tximport) == FALSE) {
+  BiocManager::install("tximport",force = TRUE,update = FALSE)
+}
+if (require(DESeq2) == FALSE) {
+  BiocManager::install("DESeq2",force = TRUE,update = FALSE)
+}
+if (require(DT) == FALSE) {
+  install.packages("DT")
+}
+if (require(ggplot2) == FALSE) {
+  install.packages("ggplot2")
+}
+if (require(heatmaply) == FALSE) {
+  install.packages("heatmaply")
+}
+
+# Environment Setup
+library(knitr)
+library(tximport)
+library(DESeq2)
+library(DT)
+library(ggplot2)
+library(heatmaply)
+
+# Create Output Directory
+dir.create(paste0(getwd(),"/",format(Sys.Date(),format = "%d_%m_%y_"),params$experiment_id,"_output/"))
+
+# Save YAML Parameters
+yaml::write_yaml(params,paste0(format(Sys.Date(),format = "%d_%m_%y_"),params$experiment_id,"_output/",
+                               params$experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),"params.yml"))
+
+```
+
+```{r,include=FALSE,results='hide',message=FALSE}
+
+# Tabulation Software, Counts Files, and Metadata
+
+# Conditional Import of Counts Matrix
+if (params$software_method == "counts_matrix") {counts_matrix = read.csv(params$counts_matrix)} else {counts_matrix = NULL}
+
+# Conditional Import of tiny RNA Matrix
+if (params$software_method == "tiny_rna") {tiny_rna_matrix_raw = read.csv(params$counts_matrix)} else {tiny_rna_matrix_raw = NULL}
+
+# Import Metadata File
+metadata = read.csv(params$metadata)
+
+# Import Experiment ID
+experiment_id = params$experiment_id
+
+# Repeated Values Solver for Gene Table and Count Matrices/tiny RNA Matrices
+repeated_values_solver = function(ids) {
+  
+  # Check for Repeated Values, Then Add Subscripts
+  if (length(ids) == length(unique(ids))) {
+    return(ids)
+    
+  } else {
+    
+    # Produce List of Subscripts
+    ids_reps = rep(NA,length(ids))
+    for (i in 1:length(ids)) {
+      if (length(which(ids[i] == ids[1:i])) > 1) {
+        ids_reps[i] = paste0("_",as.character(length(which(ids[i] == ids[1:i]))))
+      } else {
+        ids_reps[i] = ""
+      }
+    }
+    
+    # Add Subscripts to Repeated Values
+    for (i in 1:length(ids)) {
+      ids[i] = paste0(ids[i],ids_reps[i])
+    }
+    
+    # Object Return
+    return(ids)
+    
+  }
+}
+
+# Counts Matrix Preparation
+counts_matrix_prep = function(counts_matrix) {
+  
+  # Reconcile Repeated Values
+  counts_matrix[,1] = repeated_values_solver(counts_matrix[,1])
+  
+  # Convert First Column to Row Names
+  rownames(counts_matrix) = counts_matrix[,1]
+  counts_matrix = counts_matrix[,-1]
+  
+  # Round Numeric Values
+  counts_matrix = round(counts_matrix)
+  
+  # Convert Numeric Values to Integers
+  for (i in 1:length(counts_matrix[1,])) {
+    counts_matrix[,i] = as.integer(counts_matrix[,i])
+  }
+  
+  # Object Return
+  return(counts_matrix)
+  
+}
+
+# Tiny RNA Matrix Preparation
+tiny_rna_matrix_prep = function(tiny_rna_matrix) {
+  
+  # Separate Common Names
+  for (i in 1:length(tiny_rna_matrix[,1])) {
+    
+    if (is.na(strsplit(tiny_rna_matrix[i,1],":")[[1]][2])) {
+      tiny_rna_matrix[i,1] = strsplit(tiny_rna_matrix[i,1],":")[[1]][1]
+    } else {
+      tiny_rna_matrix[i,1] = strsplit(tiny_rna_matrix[i,1],":")[[1]][2]
+    }
+    
+    tiny_rna_matrix[i,2] = strsplit(tiny_rna_matrix[i,2],", ")[[1]][2]
+    if (is.na(tiny_rna_matrix[i,2])) {
+      tiny_rna_matrix[i,2] = tiny_rna_matrix[i,1]
+    }
+  }
+  
+  # Reconcile Repeated Values
+  tiny_rna_matrix[,1] = repeated_values_solver(tiny_rna_matrix[,1])
+  tiny_rna_matrix[,2] = repeated_values_solver(tiny_rna_matrix[,2])
+  
+  # Convert First Column to Row Names
+  rownames(tiny_rna_matrix) = tiny_rna_matrix[,1]
+  tiny_rna_matrix = tiny_rna_matrix[,-1]
+  
+  # Round Numeric Values
+  tiny_rna_matrix[,-c(1,2)] = round(tiny_rna_matrix[,-c(1,2)])
+  
+  # Convert Numeric Values to Integers
+  for (i in 3:length(tiny_rna_matrix[1,])) {
+    tiny_rna_matrix[,i] = as.integer(tiny_rna_matrix[,i])
+  }
+  
+  # Object Return
+  return(tiny_rna_matrix)
+  
+}
+
+# DESeq2 Initialization
+
+# Sample Table Preparation
+sample_table = data.frame(condition = as.factor(metadata[,3]))
+rownames(sample_table) = metadata[,2]
+
+# Conditional DESeq Data Import Calls
+if (params$software_method == "htseq") {
+  
+  # HTSeq Option
+  metadata_htseq = data.frame(sampleName = metadata[,2],fileName = metadata[,1],condition = factor(metadata[,3]))
+  dds = DESeqDataSetFromHTSeqCount(metadata_htseq,getwd(),~condition)
+  
+} else if (params$software_method == "counts_matrix") {
+  
+  # Counts Matrix/FeatureCounts Option
+  counts_matrix = counts_matrix_prep(counts_matrix)
+  colnames(counts_matrix) = rownames(sample_table)
+  dds = DESeqDataSetFromMatrix(counts_matrix,sample_table,~condition)
+  
+} else if (params$software_method == "tiny_rna") {
+  
+  # tiny RNA Option
+  tiny_rna_matrix_raw = tiny_rna_matrix_prep(tiny_rna_matrix_raw)
+  tiny_rna_matrix = tiny_rna_matrix_raw[,-c(1,2)]
+  colnames(tiny_rna_matrix) = rownames(sample_table)
+  dds = DESeqDataSetFromMatrix(tiny_rna_matrix,sample_table,~condition)
+  
+} else {
+  
+  # RSEM, Salmon, and Kallisto Options
+  txi = tximport(metadata[,1],type = params$software_method,txIn = FALSE,txOut = FALSE)
+  txi$length[txi$length == 0] = 1
+  dds = DESeqDataSetFromTximport(txi,sample_table,~condition)
+  
+}
+
+# DESeq2 Analysis
+dds = DESeq(dds)
+
+# Normalized Counts Table Assembly
+cts = counts(dds,normalized = TRUE)
+
+# Contrast List Assembly Function
+combination_generator = function() {
+  
+  # Control Condition Status Preparation
+  conditions_set = as.factor(metadata[,3])
+  control_status = as.logical(metadata[,4])
+  names(control_status) = conditions_set
+  control_status = control_status[unique(names(control_status))]
+  control_group = names(which(control_status == TRUE))
+  
+  # Combination Generation
+  if (all(!control_status) | sum(control_status > 1)) {
+    combinations = combn(levels(conditions_set),2)
+  } else {
+    combinations = rbind(rep(control_group,length(levels(conditions_set))-1),
+                         levels(conditions_set)[-which(levels(conditions_set) == control_group)])
+  }
+}
+
+# Contrast List Assembly
+combinations = combination_generator()
+
+# List of Results Objects by Contrast
+res = list()
+for (i in 1:length(combinations[1,])) {
+  res = append(res,list(results(dds,contrast=c("condition",combinations[2,i],combinations[1,i]))))
+}
+
+```
+
+```{r,include=FALSE,message=FALSE}
+
+# Conditional Gene Table Import
+if (params$software_method == "tiny_rna") {
+  gene_table = cbind(rownames(tiny_rna_matrix_raw),tiny_rna_matrix_raw[,c(1,2)])
+} else if (params$gene_table_method == "no_table") {
+  gene_table = NULL
+} else {
+  gene_table = read.csv(params$gene_table)
+}
+
+# Gene Table Values Preparation
+if (is.null(gene_table)) {
+  
+  # No Gene Table Option
+  common_names = NULL
+  class_names = NULL
+  
+} else {
+  if (params$gene_table_method == "full_table" | params$software_method == "tiny_rna") {
+    
+    # Full Gene Table Option
+    common_names = repeated_values_solver(gene_table[,2])
+    names(common_names) = repeated_values_solver(gene_table[,1])
+    class_names = gene_table[,3]
+    names(class_names) = repeated_values_solver(gene_table[,1])
+  
+  } else if (params$gene_table_method == "common_names_only") {
+    
+    # Common Names Only Option
+    common_names = repeated_values_solver(gene_table[,2])
+    names(common_names) = repeated_values_solver(gene_table[,1])
+    class_names = NULL
+    
+  } else if (params$gene_table_method == "gene_class_only") {
+    
+    # Gene Class Only Option
+    common_names = NULL
+    class_names = gene_table[,2]
+    names(class_names) = repeated_values_solver(gene_table[,1])
+  }
+}
+
+# Replace Gene IDs with Common Names (if Applicable)
+cts_names = rownames(cts)
+if (!is.null(common_names)) {
+  for (i in 1:length(cts_names)) {
+    if (cts_names[i] %in% names(common_names)) {
+      cts_names[i] = common_names[cts_names[i]]
+    }
+  }
+}
+
+# Reconcile Repeated Values
+cts_names = repeated_values_solver(cts_names)
+
+# Assign Gene IDs to Common Names
+names(cts_names) = rownames(cts)
+
+```
+
+\newpage
+
+## Results Tables
+
+Results tables display the gene-wise counts from each replicate in a given contrast, 
+followed by the fold change value of each gene and the associated p-value (adjusted) of the negative binomial hypothesis test conducted by DESeq2. 
+Lower p-values indicate a lower probability of the null hypothesis that counts between the two conditions are derived from the same distributional parameters. 
+Furthermore, common gene names from any uploaded gene names table will appear in a column alongside standard gene IDs for the genes that aren't associated with a common name. 
+In addition to pdf outputs, these tables can be saved as html widgets with <strong>sorting, searching, and page size customization</strong> features.
+
+```{r,include=FALSE,message=FALSE}
+
+# Base Table Function
+results_table = function(res,group1,group2) {
+  
+  # Results Object Ordering by P-Value
+  res_ordered = res[order(res$pvalue),]
+  res_ordered = data.frame(res_ordered)
+  
+  # Isolating Fold Change and Adjusted P-Value Columns
+  res_ordered = res_ordered[,c(2,6)]
+  
+  # Add Counts Columns for the Given Contrast
+  res_ordered = cbind(cts[rownames(res_ordered),
+                          rownames(sample_table)[which(sample_table == as.character(group1))]],
+                      cts[rownames(res_ordered),
+                          rownames(sample_table)[which(sample_table == as.character(group2))]],
+                      res_ordered)
+  
+  # Fold Change Column Transformation
+  res_ordered$log2FoldChange[which(res_ordered$log2FoldChange > 0)] = 
+    2^res_ordered$log2FoldChange[which(res_ordered$log2FoldChange > 0)]
+  res_ordered$log2FoldChange[which(res_ordered$log2FoldChange < 0)] = 
+    -1/(2^res_ordered$log2FoldChange[which(res_ordered$log2FoldChange < 0)])
+  
+  # Fold Change Column Renaming
+  colnames(res_ordered)[length(colnames(res_ordered))-1] = "Fold_Change"
+  
+  # Values Rounding to Three Decimal Places
+  res_ordered = round(res_ordered,digits = 3)
+  
+  # Conditional Addition of Class Names Column
+  if (!is.null(class_names)) {
+    res_ordered = cbind(class_names[rownames(res_ordered)],res_ordered)
+    colnames(res_ordered)[1] = "Class"
+  }
+  
+  # Conditional Addition of Common Names Column
+  if (!is.null(common_names)) {
+    res_ordered = cbind(common_names[rownames(res_ordered)],res_ordered)
+    colnames(res_ordered)[1] = "Common_Name"
+  }
+  
+  # Object Return
+  return(res_ordered)
+  
+}
+
+# Table Saving
+if (params$generate_results_tables == TRUE) {
+  for (i in 1:length(combinations[1,])){
+    write.csv(results_table(res[[i]],combinations[1,i],combinations[2,i]),
+              paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+                     format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_",
+                     combinations[2,i],"_vs_",combinations[1,i],"_Results.csv"))
+  }
+}
+
+```
+
+```{r,include=FALSE}
+
+# Incorporate plots into html output
+results_tables_out = NULL
+
+# Pass message to HTML output if plots are not marked for rendering
+if (params$generate_results_tables == FALSE) {
+  results_tables_out = "Results Tables not marked for rendering"
+}
+
+for (i in 1:length(combinations[1,])) {
+  if (params$generate_results_tables == TRUE) {
+    results_tables_out = c(results_tables_out,knit_expand(text = paste0("### ",combinations[2,i],' vs ',combinations[1,i])))
+    results_tables_out = c(results_tables_out,knit_expand(text = "```{r results-tables{{i}},echo=FALSE,warning=FALSE}\n datatable(results_table(res[[{{i}}]],combinations[1,{{i}}],combinations[2,{{i}}]))\n```\n"))
+  } else {
+    results_tables_out = c(results_tables_out,"")
+  }
+}
+
+```
+
+## Rendered Tables {.tabset}
+
+`r paste(knit(text = results_tables_out),collapse = '\n')`
+
+\newpage
+
+## PCA Plot
+
+The PCA plot displays loadings of the first two principal components for each sample/biological replicate in the experimental design. 
+Colored by experimental condition, the points of the PCA plot provide a visualization of clustering amongst the samples, 
+both within conditions and across conditions.
+
+```{r,include=FALSE,message=FALSE}
+
+# Base Plotting Function
+pca_input = function() {
+  
+  # Create PCA Plot
+  pca = plotPCA(vst(dds,blind = FALSE),intgroup="condition")
+  
+  # Add Plot Title
+  pca = ggplot_add(ggtitle(paste0(experiment_id," PCA Plot")),pca)
+  
+  # Revert to Classic Theme
+  pca = ggplot_add(theme_classic() + theme(plot.title = element_text(hjust = 0.5),aspect.ratio=1),pca)
+  
+  # Object Return
+  return(pca)
+}
+
+# Plot Saving
+if (params$generate_pca == TRUE) {
+  pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+             format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_PCA_Plot.pdf"),
+      title = paste0(experiment_id," PCA Plot"),
+      height = 6.5,width = 8)
+  print(pca_input())
+  dev.off()
+}
+
+```
+
+```{r,echo=FALSE,fig.height=6.5,fig.width=6.5,results='asis'}
+
+# Incorporate Plot Into HTML Output
+if (params$generate_pca == TRUE) {
+  pca_input()
+} else {
+  cat("PCA Plot not marked for rendering")
+}
+
+```
+
+\newpage
+
+## Intra-Condition Scatterplot
+
+The Intra-Condition Scatter Plots display log2 counts between pairs of biological replicates within each condition of the experimental design. 
+Any counts in the data below 1 are replaced with a value of 1 to simplify the log2 transformation. All replicate pairs in each condition are displayed.
+
+```{r,include=FALSE,message=FALSE}
+
+# Base Plotting Function
+intra_condition_input = function() {
+  
+  # Establish List of Conditions
+  intra_conditions = levels(as.factor(sample_table[,1]))
+  
+  # Intra-Condition Combinations Preparation
+  intra_combinations = NULL
+  for (i in intra_conditions) {
+    intra_combinations = cbind(intra_combinations,
+                               combn(rownames(sample_table)[which(sample_table[,1] == i)],2))
+  }
+  
+  # Gridded Plots Generation
+  par(mfrow = c(length(intra_conditions),ceiling(length(intra_combinations)/(2*length(intra_conditions)))),
+      mar = c(3,1,1,1),mgp = c(2,0.5,0),pty = "s")
+  for (i in 1:length(intra_combinations[1,])){
+    plot(log2(replace(cts,cts < 1,1))[,c(intra_combinations[1,i],intra_combinations[2,i])],
+         col="lightskyblue3",pch=15,cex=0.2)
+  }
+}
+
+# Plot Saving
+if (params$generate_intra_condition == TRUE) {
+  pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+             format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_Intra_Condition.pdf"),
+      title = paste0(experiment_id," Intra Condition Scatter Plot"),
+      height = 6.5,width = 8)
+  print(intra_condition_input())
+  dev.off()
+}
+
+```
+
+```{r,echo=FALSE,fig.height=6.5,fig.width=6.5,results='asis'}
+
+# Incorporate Plot Into HTML Output
+if (params$generate_intra_condition == TRUE) {
+  intra_condition_input()
+} else {
+  cat("Intra-Condition Scatter Plot not marked for rendering")
+}
+
+```
+
+\newpage
+
+## Mean Reads Scatter Plots
+
+The Mean Reads Scatter Plots display average log2 counts across biological replicates of experimental condition pairs for a provided contrast. 
+Average counts with a value of 0 are assigned the value -4 following the log2 transformation. Guidelines are added to assist with visualization. 
+Statistically significant genes are less transparent than insignificant genes, and they are colored <strong>blue</strong> in default plots. 
+Axes are scaled to more closely resemble the log2 transformation.Unlabeled tick marks, therefore, do not always represent whole number intervals between labeled tick marks. 
+In addition to pdf outputs, Mean Reads Scatter Plots can be saved as html widgets with <strong>draggable zooming, panning, and hover text</strong> features. 
+To reset the scatter plot axes within the widget, the <strong>home</strong> button in the top right corner of the widget can be pressed.
+
+## Customization
+
+The mean reads scatter plots can be customized by changing the <strong>p-value</strong> and <strong>fold change</strong> thresholds for distinguishing statistically significant genes.
+Furthermore, <strong>upper and lower transparency</strong> thresholds can be set for distinguishing statistical significance. The lower threshold corresponds to insignificant genes.
+The points of the plot can also be <strong>colored and sized</strong> according to their gene classes as specified by the <strong>gene table</strong>.
+If no gene table has been selected/uploaded, only the p-value, fold change, and transparency thresholds will be customizable. If a gene table has been selected/uploaded, a class parameters csv 
+can be selected from the working directory. If used, only points/genes corresponding to classes in the table will be plotted. 
+If no class parameters csv is selected, every class will be automatically colored from a list of 15 colors, and every point will be sized with a cex value of 0.3. 
+Insignificant genes will be colored grey if the <strong>customize by significance</strong> feature is set to <strong>TRUE</strong>.
+
+```{r,include=FALSE,message=FALSE,warning=FALSE}
+
+# Conditional Class Parameters Generation or Import
+if (params$customize_by_class == FALSE | is.null(class_names)) {
+  
+  # Conditional Nullification of Class Parameters
+  class_parameters = NULL
+  
+} else {
+  if (params$class_parameters == "") {
+    
+    # Default Colors List
+    class_colors = c("#1F78B4","#1B9E77","#33A02C","#014421","#E6AB02","#FF7F00","#FF9E84","#8B0000",
+                     "#E31A1C","#E7298A","#6A3D9A","#907567","#A6761D","#525252","#000000")
+    
+    # Default Table Generation
+    class_parameters = data.frame(point_class = levels(as.factor(class_names)),
+                                  point_colors = rep(class_colors,ceiling(length(levels(as.factor(class_names)))/length(class_colors)))[1:length(levels(as.factor(class_names)))],
+                                  point_sizes = rep(0.3,length(levels(as.factor(class_names)))))
+    
+    # Default Table Saving
+    write.csv(class_parameters,paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+                                      experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),"class_parameters.csv"),row.names = FALSE)
+    
+  } else {
+    
+    # Custom Table Import
+    class_parameters = read.csv(params$class_parameters)
+  }
+}
+
+# Plot Parameter Values Preparation
+if (is.null(class_parameters)) {
+  
+  # No Plot Parameters Option
+  point_color = NULL
+  point_size = NULL
+  
+} else {
+  
+  # Full Plot Parameters Option
+  point_color = class_parameters[,2]
+  names(point_color) = class_parameters[,1]
+  point_size = class_parameters[,3]
+  names(point_size) = class_parameters[,1]
+    
+}
+
+# Average Counts Table Assembly
+cts_avg = NULL
+for (i in levels(as.factor(metadata[,3]))) {
+  cts_avg = cbind(cts_avg,log2(rowMeans(cts[,metadata[,2][metadata[,3] == i]])))
+}
+
+# Replace Infinite Values With -4
+cts_avg = replace(cts_avg,cts_avg=='-Inf',-4)
+
+# Isolate Specific Classes
+if (!is.null(class_parameters)) {
+  cts_avg = cts_avg[intersect(names(class_names[class_names %in% class_parameters[,1]]),names(cts_names)),]
+}
+
+# Assign Appropriate Column Names
+colnames(cts_avg) = levels(as.factor(metadata[,3]))
+
+# Base Plotting Function
+mean_reads_input = function(res,group1,group2) {
+  
+  # Significant Genes Classification
+  res = res[rownames(cts_avg),]
+  res_sig = as.data.frame(subset(res,padj < params$p_value_threshold & abs(log2FoldChange) > log2(params$fold_change_threshold)))
+  
+  # GGplot2 Aesthetic Variables
+  x = cts_avg[,group1]
+  y = cts_avg[,group2]
+  n = cts_names[rownames(cts_avg)]
+  
+  # Point Significance Variable
+  point_sig = rownames(cts_avg) %in% rownames(res_sig)
+  
+  # Conditional Determination of Size and Color Factor Variables
+  
+  # Point Colors Assignment
+  if (is.null(point_color)) {
+    
+    # Default Point Colors
+    color_class = paste0(c("p < 0.05","p > 0.05")[2-point_sig])
+    color_levels = c("#009ACD","#D3D3D3")
+    
+  } else {
+    
+    if (params$customize_by_significance == TRUE) {
+      
+      # Significance-Customized Point Colors
+      color_class = paste0(c("p < 0.05","p > 0.05")[2-point_sig])
+      color_class[color_class == "p < 0.05"] = class_names[names(n)[color_class == "p < 0.05"]]
+      color_levels = c("p > 0.05" = "#D3D3D3",point_color)
+      
+    } else {
+      
+      # Fully Customized Point Colors
+      color_class = class_names[names(n)]
+      color_levels = point_color
+      
+    }
+  }
+  
+  # Point Sizes Assignment
+  if (is.null(point_size)) {
+    
+    # Default Point Sizes
+    size_class = paste0(c("p < 0.05","p > 0.05")[2-point_sig])
+    size_levels = c(0.5,0.3)
+    
+  } else {
+    
+    # Customized Point Sizes
+    size_class = class_names[names(n)]
+    size_levels = point_size
+    
+  }
+  
+  # Formatting Gene Name Text Variable
+  for (i in 1:length(n)) {
+    n[i] = paste0("Gene: ",n[i],"<br>","Class: ",class_names[names(n)[i]])
+  }
+  
+  # Final Data Frame Assembly for GGplot
+  points_data = data.frame(x,y,color_class,size_class,point_sig,row.names = n)
+  
+  # Major and Minor Tick Mark Locations
+  tick_sep = seq(-4,20,0.8)
+  tick_sep = 2^tick_sep
+  tick_sep[1:6] = seq(tick_sep[1],tick_sep[6],length.out = 6)
+  tick_sep[6:11] = seq(tick_sep[6],tick_sep[11],length.out = 6)
+  tick_sep[11:16] = seq(tick_sep[11],tick_sep[16],length.out = 6)
+  tick_sep[16:21] = seq(tick_sep[16],tick_sep[21],length.out = 6)
+  tick_sep[21:26] = seq(tick_sep[21],tick_sep[26],length.out = 6)
+  tick_sep[26:31] = seq(tick_sep[26],tick_sep[31],length.out = 6)
+  
+  # Tick Mark Labels
+  tick_labs = rep("",31)
+  tick_labs[seq(1,31,5)] = prettyNum(log2(tick_sep[seq(1,31,5)]),digits=2,format="f")
+  
+  # GGplott Object Generation
+  mean_reads = ggplot(points_data,aes(x,y)) + 
+    
+    # Point Plotting, Sizing, Coloring, and Text Addition
+    geom_point(aes(color = factor(color_class),size = factor(size_class),alpha = factor(point_sig),shape = factor(20),
+                   text = paste0(group1,": ",round(x,digits = 3),"<br>",
+                                 group2,": ",round(y,digits = 3),"<br>",n))) + 
+    
+    # Color, Size, and Transparency Levels
+    scale_color_manual(values = color_levels,name = "Feature Class") + 
+    scale_size_manual(values = size_levels,guide = "none") +
+    scale_alpha_manual(values = c(params$lower_transparency,params$upper_transparency),
+                       name = "Significance",labels = c("p > 0.05","p < 0.05")) +
+    scale_shape(guide = "none") + 
+    
+    # Guide Lines
+    geom_abline(intercept = 0,slope = 1,color = "grey60") + 
+    geom_abline(intercept = 1,slope = 1,color = "grey60") +
+    geom_abline(intercept = -1,slope = 1,color = "grey60") + 
+    geom_hline(yintercept = log2(10),color = "grey60",linetype = "dashed") + 
+    geom_vline(xintercept = log2(10),color = "grey60",linetype = "dashed") + 
+    
+    # Tick Marks
+    scale_y_continuous(breaks = log2(tick_sep),labels = tick_labs,
+                       limits = c(-4,max(cts_avg[,c(group1,group2)]))) + 
+    scale_x_continuous(breaks = log2(tick_sep),labels = tick_labs,
+                       limits = c(-4,max(cts_avg[,c(group1,group2)]))) + 
+    
+    # Title
+    ggtitle(paste0(group2,' vs ',group1)) +
+    
+    # Axis Labeling
+    xlab(paste0('log2 average reads in ',group1)) +
+    ylab(paste0('log2 average reads in ',group2)) +
+    
+    # Theme Specification
+    theme_classic() + 
+    theme(plot.title = element_text(hjust = 0.5)) + 
+    theme(legend.position = "right")
+  
+  # Object Return
+  return(mean_reads)
+}
+
+# Plot Saving
+if (params$generate_mean_reads == TRUE) {
+  for (i in 1:length(combinations[1,])){
+    
+    # Save PDF plots if applicable
+    mean_reads_plot = mean_reads_input(res[[i]],combinations[1,i],combinations[2,i])
+    pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+               format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_",
+               combinations[2,i],"_vs_",combinations[1,i],"_Mean_Reads.pdf"),
+        title = paste0(experiment_id," ",combinations[2,i]," vs ",combinations[1,i]," Mean Reads Scatter Plot"),
+        height = 6.5,width = 8)
+    print(mean_reads_plot)
+    dev.off()
+    
+    if (params$save_mean_reads_interactive == TRUE) {
+      
+      # Save interactive Plots if applicable
+      htmlwidgets::saveWidget(ggplotly(mean_reads_plot,tooltip = "text",width = 1000,height = 650),
+                              file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+                                            format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_",
+                                            combinations[2,i],"_vs_",combinations[1,i],"_Mean_Reads.html"))
+      
+      # Remove accessory mean reads files
+      unlink(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+                    format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_",
+                    combinations[2,i],"_vs_",combinations[1,i],"_Mean_Reads_files/"),recursive = TRUE)
+      
+    }
+  }
+}
+
+```
+
+```{r mean-reads-out,include=FALSE}
+
+# Incorporate plots into html output
+mean_reads_out = NULL
+
+# Pass message to HTML output if plots are not marked for rendering
+if (params$generate_mean_reads == FALSE) {
+  mean_reads_out = "Mean Reads Scatter Plots not marked for rendering"
+}
+
+for (i in 1:length(combinations[1,])) {
+  if (params$generate_mean_reads == TRUE) {
+    mean_reads_out = c(mean_reads_out,knit_expand(text = paste0("### ",combinations[2,i],' vs ',combinations[1,i])))
+    mean_reads_out = c(mean_reads_out,knit_expand(text = "```{r mean-reads{{i}},echo=FALSE,warning=FALSE,fig.height=6.5,fig.width=8}\n mean_reads_input(res[[{{i}}]],combinations[1,{{i}}],combinations[2,{{i}}]) \n```\n"))
+  } else {
+    mean_reads_out = c(mean_reads_out,"")
+  }
+}
+
+```
+
+## Rendered Plots {.tabset}
+
+`r paste(knit(text = mean_reads_out),collapse = '\n')`
+
+\newpage
+
+## MA Plots
+
+The Standard MA Plots are built from the DESeq2 package and display the fold change of a gene over its mean counts value (normalized) for a provided contrast between experimental conditions. 
+Genes with a statistically significant p-value (p < 0.05) are colored in <strong>blue</strong>.
+
+```{r,include=FALSE,message=FALSE}
+
+# Base Plotting Function
+ma_input = function(res,group1,group2) {
+  plotMA(res,ylim=c(-4,4),main = paste0(group2,' vs ',group1))
+}
+
+# Plot Saving
+if (params$generate_ma == TRUE) {
+  for (i in 1:length(combinations[1,])){
+    pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+               format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_",
+               combinations[2,i],"_vs_",combinations[1,i],"_MA_Plot.pdf"),
+        title = paste0(experiment_id," ",combinations[2,i]," vs ",combinations[1,i]," MA Plot"),
+        height = 6.5,width = 6.5)
+    print(ma_input(res[[i]],combinations[1,i],combinations[2,i]))
+    dev.off()
+  }
+}
+
+```
+
+```{r ma-out,include=FALSE}
+
+# Incorporate plots into html output
+ma_out = NULL
+
+# Pass message to HTML output if plots are not marked for rendering
+if (params$generate_ma == FALSE) {
+  ma_out = "MA Plots not marked for rendering"
+}
+
+for (i in 1:length(combinations[1,])) {
+  if (params$generate_ma == TRUE) {
+    ma_out = c(ma_out,knit_expand(text = paste0("### ",combinations[2,i],' vs ',combinations[1,i])))
+    ma_out = c(ma_out,knit_expand(text = "```{r ma{{i}},echo=FALSE,warning=FALSE,fig.height=6.5,fig.width=6.5}\n ma_input(res[[{{i}}]],combinations[1,{{i}}],combinations[2,{{i}}]) \n```\n"))
+  } else {
+    mean_reads_out = c(mean_reads_out,"")
+  }
+}
+
+```
+
+## Rendered Plots {.tabset}
+
+`r paste(knit(text = ma_out),collapse = '\n')`
+
+\newpage
+
+## Heatmap
+
+The <strong>Complete</strong> heatmap shows log2 counts across all samples for any genes above a certain mean count threshold of three 
+(meaning an average of eight counts across all samples). Using the package <strong>heatmaply</strong>, 
+an interactive html widget is rendered with <strong>draggable zooming, panning, and hover text</strong> features. 
+To reset the heatmap axes, the home button in the top right corner of the widget can be pressed. Darker blue cells indicate lower log2 counts values,
+while darker red cells indicate higher log2 counts values. 
+Furthermore, rows (genes) are clustered using the complete hierarchical clustering method in R (hclust) with eudclidean distances.
+
+The <strong>Class-Separated: All Classes</strong> heatmap relies on the gene table to map all genes with an associated class. 
+Such genes are grouped alphabetically by class and clustered hierarchically within their respective group. 
+Hover text indicates the class assigned to each gene.
+
+The <strong>Class-Separated: Selected Classes</strong> heatmap produces subplots for each class listed in the associated yaml parameter entry.
+Heatmaps for each listed class are scaled according to the limits of the complete heatmap, 
+although cell sizes are scaled according to the number of genes associated with each class. 
+
+```{r,include=FALSE,message=FALSE}
+
+# Heatmap Type Import
+heatmap_type = params$heatmap_type
+
+# Conditional Separation of Heatmap Classes String
+if (heatmap_type == "selected_classes") {
+  heatmap_selected_classes = strsplit(params$heatmap_selected_classes,",")[[1]]
+}
+
+# Conditional Reversion of Heatmap Type to "Complete"
+if (params$gene_table_method == "no_table" | params$gene_table_method == "common_names_only") {heatmap_type = "complete"}
+
+# Heatmap Matrix Generation
+cts_heat = log2(cts)[which(rowMeans(log2(cts)) >= 3),]
+
+# Complete Heatmap Base Plotting Function
+complete_heatmap = function() {
+  
+  # Common Names Conversion
+  rownames(cts_heat) = cts_names[rownames(cts_heat)]
+    
+  # Clustering and Re-Ordering
+  d = dist(cts_heat,method = "euclidean")
+  h = hclust(d,method = "complete")
+  cts_heat = cts_heat[h$order,]
+    
+  # Heatmaply Call
+  heatmap_full = heatmaply(cts_heat,
+                           colors = c("#020532","#03095B","#053061","#2166AC","#4393C3","#92C5DE","#D1E5F0",
+                                      "#F7F7F7","#FDDBC7","#F4A582","#D6604D","#B2182B","#67001F","#000000"),
+                           limits = c(floor(min(cts_heat)),ceiling(max(cts_heat))),
+                           showticklabels = c(TRUE,FALSE),Colv = FALSE,Rowv = FALSE,
+                           main = "Complete Heatmap")
+  
+  # Object Return
+  return(heatmap_full)
+  
+}
+
+# All Classes Heatmap Base Plotting Function
+all_classes_heatmap = function() {
+    
+  # Class-separated Matrix and Class Text Matrix Setup
+  cts_heat_full = NULL
+  cts_heat_text = NULL
+    
+  # Iteration for Each Class
+  for (i in 1:length(levels(as.factor(class_names)))) {
+    
+    # Isolation of Class-Based Matrix
+    cts_heat_class = cts_heat[intersect(names(class_names[which(class_names == levels(as.factor(class_names))[i])]),rownames(cts_heat)),]
+      
+    # Check for Null Matrices Before Integration Into Heatmap
+    if (length(cts_heat_class) > 0) {
+      
+      # Produce Named Class-Based Matrix
+      cts_heat_class = matrix(cts_heat_class,nrow = length(cts_heat_class)/length(cts_heat[1,]),byrow = FALSE,
+                              dimnames = list(rownames(cts_heat_class),colnames(cts_heat_class)))
+        
+      # Addition of Class Text Entries to Overall Text Matrix
+      cts_heat_text = rbind(cts_heat_text,
+                            matrix(rep(paste0("Class: ",class_names[rownames(cts_heat_class)]),dim(cts_heat_class)[2]),
+                                   nrow = dim(cts_heat_class)[1],ncol = dim(cts_heat_class)[2]))
+        
+      # Common Names Conversion
+      rownames(cts_heat_class) = cts_names[rownames(cts_heat_class)]
+        
+      # Clustering and Re-Ordering for Class-Based Matrices of >1 Row
+      if (dim(cts_heat_class)[1] > 1) {
+        d = dist(cts_heat_class,method = "euclidean")
+        h = hclust(d,method = "complete")
+        cts_heat_class = cts_heat_class[h$order,]
+      }
+        
+      # Addition of Class-Based Matrix to Overall Matrix
+      cts_heat_full = rbind(cts_heat_full,cts_heat_class)
+        
+    }
+  }
+    
+  # Heatmaply Call
+  heatmap_full = heatmaply(cts_heat_full,
+                           colors = c("#020532","#03095B","#053061","#2166AC","#4393C3","#92C5DE","#D1E5F0",
+                                      "#F7F7F7","#FDDBC7","#F4A582","#D6604D","#B2182B","#67001F","#000000"),
+                           limits = c(floor(min(cts_heat)),ceiling(max(cts_heat))),
+                           showticklabels = c(TRUE,FALSE),Colv = FALSE,Rowv = FALSE,
+                           main = "All Classes Heatmap",margins = c(50,50,50,50),
+                           custom_hovertext = cts_heat_text)
+  
+  # Object Return
+  return(heatmap_full)
+  
+}
+
+# Selected Classes Heatmap Base Plotting Function
+selected_classes_heatmap = function() {
+  
+  heatmap_full = NULL
+  
+  # Iteration for Each Selected Class
+  for (i in 1:length(heatmap_selected_classes)) {
+    
+    # Isolation of Class-Based Matrix
+    cts_heat_class = cts_heat[intersect(names(class_names[which(class_names == heatmap_selected_classes[i])]),rownames(cts_heat)),]
+    
+    if (length(cts_heat_class) > 0) {
+      cts_heat_class = matrix(cts_heat_class,nrow = length(cts_heat_class)/length(cts_heat[1,]),byrow = FALSE,
+                              dimnames = list(rownames(cts_heat_class),colnames(cts_heat_class)))
+      
+      # Common Names Conversion
+      rownames(cts_heat_class) = cts_names[rownames(cts_heat_class)]
+      
+      # Clustering and Re-Ordering for Class-Based Matrices of >1 Row
+      if (length(cts_heat_class) > length(cts_heat[1,])) {
+        d = dist(cts_heat_class,method = "euclidean")
+        h = hclust(d,method = "complete")
+        cts_heat_class = cts_heat_class[h$order,]
+      }
+      
+      # Heatmaply Call
+      hm_class = heatmaply(cts_heat_class,
+                           colors = c("#020532","#03095B","#053061","#2166AC","#4393C3","#92C5DE","#D1E5F0",
+                                      "#F7F7F7","#FDDBC7","#F4A582","#D6604D","#B2182B","#67001F","#000000"),
+                           limits = c(floor(min(cts_heat)),ceiling(max(cts_heat))),
+                           showticklabels = c(TRUE,FALSE),Colv = FALSE,Rowv = FALSE,
+                           ylab = heatmap_selected_classes[i],main = "Selected Classes Heatmap",
+                           margins = c(50,50,50,50))
+      
+      # Addition of Heatmaply Object to Subplots List
+      heatmap_full = append(heatmap_full,list(hm_class))
+    
+    }
+  }
+  
+  # Subplot Compilation
+  heatmap_full = subplot(heatmap_full,nrows = length(heatmap_selected_classes),shareX = TRUE,titleY = TRUE,margin = 0.005)
+  
+  # Object Return
+  return(heatmap_full)
+  
+}
+
+# Conditional Heatmap Saving
+if (params$generate_heatmap == TRUE) {
+  if (heatmap_type == "complete") {
+    
+    # Complete Heatmap Plot Saving
+    htmlwidgets::saveWidget(complete_heatmap(),file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+                                                             format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_Heatmap.html"))
+    
+  } else if (heatmap_type == "all_classes") {
+    
+    # All Classes Heatmap Plot Saving
+    htmlwidgets::saveWidget(all_classes_heatmap(),file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+                                                                format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_Heatmap.html"))
+    
+  } else if (heatmap_type == "selected_classes") {
+    
+    # Selected Classes Heatmap Plot Saving
+    htmlwidgets::saveWidget(selected_classes_heatmap(),file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+                                                                     format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_Heatmap.html"))
+    
+  }
+}
+
+# Remove accessory heatmap files
+unlink(paste0(format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_output/",
+              format(Sys.Date(),format = "%d_%m_%y_"),experiment_id,"_Heatmap_files/"),recursive = TRUE)
+
+```
+
+```{r,echo=FALSE,fig.height=6.5,fig.width=8,fig.align="center",results='asis'}
+
+# Incorporate plot into html output
+if (params$generate_heatmap == TRUE) {
+  if (heatmap_type == "complete") {
+    
+    # Complete Heatmap Plot Saving
+    complete_heatmap()
+    
+  } else if (heatmap_type == "all_classes") {
+    
+    # All Classes Heatmap Plot Saving
+    all_classes_heatmap()
+    
+  } else if (heatmap_type == "selected_classes") {
+    
+    # Selected Classes Heatmap Plot Saving
+    selected_classes_heatmap()
+    
+  }
+} else {
+  cat("Heatmap not marked for rendering")
+}
+
+```
