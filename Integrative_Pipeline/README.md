@@ -1,7 +1,5 @@
 ## RNA-Integrate: Integrative Pipeline for Parallel mRNA and small RNA Data
 
-:warning: **Under Development** :warning:
-
 ## Table of Contents
 
 - [Introduction](#introduction)
@@ -163,19 +161,19 @@ For the mRNA and small RNA experimental runs, output will consist of results tab
 
 Integrative Results Tables include the class, base mean, fold change, and negative binomial test p-value for every small RNA and mRNA target pairing for which valid data is available (some low count genes have indeterminable fold changes and p-values. These genes have therefore been excluded). Classes are derived from the imported gene table. Base mean, fold change, and p-value entries are derived from the DESeq2 analysis. 
 
-<img src=../Demo/Integrative_Demo_Results/integrative_demo_integrative_data.png width="800" height="500">
+<img src=../Demo/Integrative_Demo_Results/integrative_demo_integrative_data.png width="800" height="265">
 
 ### Cosmic Plots
 
 Cosmic Plots utilize ggplot2 techniques for representing five-dimensions of data within a two-dimensional scatter plot. The log2 fold change of the small RNA gene in each small RNA and mRNA pairing is represented on the x-axis, while the log2 fold change of the mRNA target of the corresponding small RNA is represented on the y-axis. Furthermore, pairings with an insignificant small RNA p-value (p > 0.05) are plotted in light grey, and pairings with a significant mRNA p-value (p < 0.05) are given a dark grey border around the point. Points are sized according to their mRNA log2 mean, and they are colored (if the small RNA p-value is significant) on a modified 'blues' color scale from the <strong>RColorBrewer</strong> package according to their small RNA mean (not log2 transformed for better texturing), with darker blues and black representing higher means. Thus, a comprehensive view of every small RNA and mRNA pairing across the two individual experiments can be visualized amongst the plot's four quadrants. Using the plotly package, these scatter plots offer zooming, panning, significance group isolation, and hover text features. Plots for each experimental contrast (provided the contrast is present in both experiments and specified in the associated yaml parameter) are saved as html widgets, which can be printed within a browser window to produce high-quality pdf images.
 
-<img src=../Demo/Integrative_Demo_Results/integrative_demo_cosmic_plot.jpg width="800" height="500">
+<img src=../Demo/Integrative_Demo_Results/integrative_demo_cosmic_plot.jpg width="800" height="562">
 
 ### Slope Plots
 
 Slope Plots provide another way of visualizing fold change relationships between small RNA and mRNA pairings, namely by tracing a straight line between the fold change level of the small RNA gene on the left side of the plot and the fold change level of the corresponding mRNA target on the right side of the plot. Slope plots rely on ggplot2 plotting techniques. Lines are colored by their class as specified in the gene table (colors are built from a high-contrast, accessible palette developed by the Montgomery Lab), and it is recommended that classes representing smaller numbers of genes be singled out for plotting using the associated yaml parameter. This plot may be most useful for analyzing micro RNA (miRNA) and mRNA target relationships from one experimental condition to the other. Furthermore, line opacity for a certain class is inversely proportional to the number of genes in that class according to the function `opacity = (1/(1 + n/100))`, where n is the number of genes for a class. Thus, classes with an abundance of genes will appear more transparent. Plots for each experimental contrast (provided the contrast is present in both experiments and specified in the associated yaml parameter) are saved as pdf files. 
 
-<img src=../Demo/Integrative_Demo_Results/integrative_demo_slope_plot.jpg width="800" height="500">
+<img src=../Demo/Integrative_Demo_Results/integrative_demo_slope_plot.jpg width="800" height="800">
 
 ## Authors
 
