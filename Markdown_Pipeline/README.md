@@ -64,7 +64,7 @@ The following packages are used within the pipeline:
 
 ### Parameters YAML
 
-The parameters YAML file contains the details of the experimental configuration, including a number of plot customization options. A template params.yml file can be seen [here](template_int_params.yml). The following parameters are read from the YAML file during the pipeline's execution:
+The parameters YAML file contains the details of the experimental configuration, including a number of plot customization options. A template params.yml file can be seen [here](template_params.yml). The following parameters are read from the YAML file during the pipeline's execution:
 
 #### Setup and Metadata Parameters
 
@@ -108,8 +108,6 @@ The parameters YAML file contains the details of the experimental configuration,
 - generate_heatmap: TRUE or FALSE logical value describing whether the [Heatmap](#heatmap) should be rendered and saved.
 - heatmap_type: options include "complete", "all_classes", and "selected_classes". See [Heatmap](#heatmap).
 - heatmap_selected_classes: comma-separated list of classes for which heatmaps will be generated if the heatmap type is "selected_classes"
-
-An example of the parameters YAML with default settings can be seen [here](params.yml).
 
 ### Metadata CSV
 
