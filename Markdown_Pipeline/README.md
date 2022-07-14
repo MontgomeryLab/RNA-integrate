@@ -121,12 +121,12 @@ The metadata csv summarizes the experimental design and provides information to 
 
 ### Gene Table
 
-The gene table is a key component of customizing the pipeline's data analysis and visualization. The first column of the gene table should consist of any number of gene IDs identical to corresponding IDs from the counts files or matrix. If <strong>Common Names Only</strong> is selected as the gene table method, then common or public names should be listed in the second column of the csv. If a gene does not have a common name, its gene ID can be repeated in the second column, or the gene can be removed from the gene table altogether. If <strong>Gene Class Only</strong> is selected as the gene table method, then any classification of interest can be listed in the second column of the csv. If a gene has no associated classification, it should be removed from the gene table or given the classifcation "other" in the second column. If <strong>Full Table</strong> is selected as the gene table method, common names should be listed in the second column and classifications should be listed in the third column. If a gene does not have either a common name or a classification, the rules of the other corresponding table types should be applied. An example gene table can be viewed [here](template_gene_table.csv), and a preview is shown below.
+The gene table is a key component of customizing the pipeline's data analysis and visualization, although it is optional for individual runs of the markdown pipeline. To disable the gene table, select <strong>no_table</strong> as the gene table method in the [parameters yaml](#parameters-yaml). Choosing <strong>common_names_only</strong> will eliminate the class-based customization, and choosing <strong>class_names_only</strong> will eliminate common name substitution. Choosing <strong>full_table</strong> as the gene table method will maintain both class-based customization and common name substitution. The first column of the gene table should consist of any number of gene IDs identical to corresponding IDs from the tabulated counts files or matrix. The second column of the gene table should consist of any common names that should replace a corresponding gene ID in results tables, mean reads scatter plots, and heatmaps. To avoid replacing the gene ID for a particular gene, the gene ID should be repeated in the second column. The third column of the gene table should consist of the class to which each gene ID belongs. Class names are used to characterize and color visualized genes for the mean reads scatter plots and heatmaps (if <strong>selected_classes</strong> is chosen as the heatmap type). A fourth column of the gene table may be included that lists target gene ids, separated by commas, but this fourth column us only usable in the [integrative pipeline](../Integrative_Pipeline/). They are also included in the results tables. A template gene table can be viewed [here](template_gene_table.csv), and a preview is shown below.
 
-| Gene_ID   | Common_Name | Gene_Class  |
-|-----------|-------------|-------------|
-| Y53H1C.1  | aat-9       | CSR         |
-| ...       | ...         | ...         |
+| Gene_ID      | Public_Name   | Class         | Targets        |
+|--------------|---------------|---------------|----------------|
+| MIMAT0000002 | lin-4-5p      | miRNA         | WBGene00003003 |
+| ...          | ...           | ...           | ...            |
 
 ### Class Parameters CSV
 
