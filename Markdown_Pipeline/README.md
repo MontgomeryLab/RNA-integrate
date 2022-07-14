@@ -66,15 +66,29 @@ The following packages are used within the pipeline:
 
 The parameters YAML file contains the details of the experimental configuration, including a number of plot customization options. A template params.yml file can be seen [here](template_int_params.yml). The following parameters are read from the YAML file during the pipeline's execution:
 
+#### Setup and Metadata Parameters
+
 - experiment_id: a short string with no spaces or special characters that distinguishes a particular experimental run. The experiment id will be included in the names of the output directory and saved files. 
 - software_method: the tabulation software used to produce counts files or a counts matrix. Options include "counts_matrix" (FeatureCounts), "tiny_rna" (developed by the Montgomery Lab - https://github.com/MontgomeryLab/tinyRNA), "rsem", "htseq", "salmon", "kallisto". 
 - counts_matrix: a string describing the file path for the counts matrix or the tiny RNA matrix, if applicable.
 - metadata: a string describing the file path for the [Metadata CSV](#metadata-csv).
 - gene_table_method: options include "full_table", "common_names_only", "gene_class_only", and "no_table". see [Gene Table](#gene-table).
 - gene_table: a string describing the file path for the gene table, if applicable.
+
+#### Results Table Parameters
+
 - generate_results_tables: TRUE or FALSE logical value describing whether [Results Tables](#results-tables) should be rendered and saved.
+
+#### PCA Plot Parameters
+
 - generate_pca: TRUE or FALSE logical value describing whether the [PCA Plot](#pca-plot) should be rendered and saved.
+
+#### Intra-Condition Scatter Plot Parameters
+
 - generate_intra_condition: TRUE or FALSE logical value describing whether the [Intra-Condition Scatter Plot](#intra-condition-scatter-plot) should be rendered and saved.
+
+#### Mean Reads Scatter Plot Parameters
+
 - generate_mean_reads: TRUE or FALSE logical value describing whether the [Mean Reads Scatter Plots](#mean-reads-scatter-plots) should be rendered and saved.
 - save_mean_reads_interactive: TRUE or FALSE logical value describing whether or not to save interactive html versions of mean reads scatter plots
 - p_value_threshold: numeric value threshold for classifying significant genes by p-value (between 0.01 and 0.1 for best results).
@@ -84,7 +98,13 @@ The parameters YAML file contains the details of the experimental configuration,
 - customize_by_class: TRUE or FALSE logical value describing whether mean reads scatter plots should be customized by their classes, as listed in the gene table. Note that a gene table must be imported in order to customize by class. see [Class Parameters CSV](#class-parameters-csv).
 - customize_by_significance: TRUE or FALSE logical value describing whether points representing insignificant genes should be colored grey. Otherwise, all points will be colored, and their p-value significance will be distinguished only by transparency.
 - class_parameters: a string describing the file path for the plot parameters csv, if applicable. If left as an empty string, a default class parameters csv will be generated including all classes listed in the gene table. 
+
+#### MA Plot Parameters
+
 - generate_ma: TRUE or FALSE logical value describing whether the [MA Plots](#ma-plots) should be rendered and saved.
+
+#### Heatmap Parameters
+
 - generate_heatmap: TRUE or FALSE logical value describing whether the [Heatmap](#heatmap) should be rendered and saved.
 - heatmap_type: options include "complete", "all_classes", and "selected_classes". See [Heatmap](#heatmap).
 - heatmap_selected_classes: comma-separated list of classes for which heatmaps will be generated if the heatmap type is "selected_classes"
@@ -125,7 +145,7 @@ The class parameters csv is used to customize [Mean Reads Scatter Plots](#mean-r
 
 Results tables display the gene-wise counts from each replicate in a given contrast, followed by the fold change value of each gene and the associated p-value (adjusted) of the negative binomial hypothesis test conducted by DESeq2. Lower p-values indicate a lower probability of the null hypothesis that counts between the two conditions are derived from the same distributional parameters. Furthermore, any common gene names and/or classes from an uploaded gene table will be included in columns beside the Gene ID column. In addition to csv outputs, these tables are rendered within the markdown file as html widgets with <strong>sorting, searching, and page size customization</strong> features.
 
-<img src=../Demo/mRNA_Demo_Results/mrna_demo_Results.png width="800" height="500">
+<img src=../Demo/mRNA_Demo_Results/mrna_demo_piwi_vs_wt_Results.png width="800" height="500">
 
 ### PCA Plot
 
