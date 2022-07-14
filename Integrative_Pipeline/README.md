@@ -11,14 +11,14 @@
   - [Class Parameters CSV](#class-parameters-csv)
 - [Output](#output)
   - [Integrative Results Tables](#integrative-results-tables)
-  - [Galaxy Plots](#galaxy-plots)
+  - [Cosmic Plots](#cosmic-plots)
   - [Slope Plots](#slope-plots)
 - [Authors](#authors)
 
 
 ## Introduction
 
-Welcome to the Montgomery DESeq2 Pipeline for small RNA and mRNA integrative experiments in R Markdown. This pipeline allows for the analysis and visualization of data describing the interactions between small RNA and mRNA components of the same experiment. First, separate runs of an R Markdown pipeline for individual experiments are executed, once for the small RNA data and once for the mRNA data. Then, information found in an imported gene table describing targets for each small RNA or mRNA gene is used to produce [integrative results tables](#integrative-results-tables), [galaxy scatter plots](#galaxy-plots), and [slope plots](#slope-plots). To see more information about the individual experiment pipeline, click [here](../Markdown_Pipeline/). For each individual experiment run, as well as for the integrative data, knitted R Markdown reports will be produced in addition to plots, tables, and a copy of the yaml parameters file, all saved in separate directories within the markdown pipeline's local directory. 
+Welcome to the Montgomery DESeq2 Pipeline for small RNA and mRNA integrative experiments in R Markdown. This pipeline allows for the analysis and visualization of data describing the interactions between small RNA and mRNA components of the same experiment. First, separate runs of an R Markdown pipeline for individual experiments are executed, once for the small RNA data and once for the mRNA data. Then, information found in an imported gene table describing targets for each small RNA or mRNA gene is used to produce [integrative results tables](#integrative-results-tables), [cosmic plots](#cosmic-plots), and [slope plots](#slope-plots). To see more information about the individual experiment pipeline, click [here](../Markdown_Pipeline/). For each individual experiment run, as well as for the integrative data, knitted R Markdown reports will be produced in addition to plots, tables, and a copy of the yaml parameters file, all saved in separate directories within the markdown pipeline's local directory. 
 
 The pipeline can be executed within R studio using the following command:
 
@@ -117,7 +117,7 @@ The integrative parameters YAML file contains the details of the experimental co
 - generate_integrative_results_tables: TRUE or FALSE logical value describing whether or not to generate and save integrative results tables.
 
 
-- generate_cosmic_plots: TRUE or FALSE logical value describing whether or not the galaxy scatter plots should be rendered and saved.
+- generate_cosmic_plots: TRUE or FALSE logical value describing whether or not the cosmic plots should be rendered and saved.
 
 
 - generate_slope_plots: TRUE or FALSE logical value describing whether or not to generate and save slope plots.
@@ -139,10 +139,10 @@ The metadata csv summarizes the experimental design and provides information to 
 
 The gene table is a key component of customizing the pipeline's data analysis and visualization. While the gene table is optional for the mRNA and small RNA experimental runs, it is required for the integrative analysis. To disable the gene table for the mRNA and/or small RNA experimental runs, select <strong>no_table</strong> as the gene table method for the corresponding run type in the [integrative parameters yaml](#integrative-parameters-yaml). Choosing <strong>common_names_only</strong> will eliminate the class-based customization in an individual mRNA or small RNA run, and choosing <strong>class_names_only</strong> will eliminate common name substitution in an individual mRNA or small RNA run. The first column of the gene table should consist of any number of gene IDs identical to corresponding IDs from the tabulated counts files or matrix. The second column of the gene table should consist of any common names that should replace a corresponding gene ID in results tables, mean reads scatter plots, and heatmaps. To avoid replacing the gene ID for a particular gene, the gene ID should be repeated in the second column. The third column of the gene table should consist of the class to which each gene ID belongs. Class names are used to characterize and color visualized genes for the mean reads scatter plots, heatmaps (if <strong>selected_classes</strong> is chosen as the heatmap type), and slope plots. They are also included in both individual and integrative results tables. The fourth column of the gene table should consist of targets (ideally other genes in the table but potentially other genes present in the expeerimental data) to be paired with corresponding gene IDs. Multiple targets for a certain gene ID can be listed and separated by commas. A template gene table can be viewed [here](template_gene_table.csv), and a preview is shown below.
 
-| Gene_ID   | Common_Name | Gene_Class  |
-|-----------|-------------|-------------|
-| Y53H1C.1  | aat-9       | CSR         |
-| ...       | ...         | ...         |
+| Gene_ID      | Public_Name   | Class         | Targets        |
+|--------------|---------------|---------------|----------------|
+| MIMAT0000002 | lin-4-5p      | miRNA         | WBGene00003003 |
+| ...          | ...           | ...           | ...            |
 
 ### Class Parameters CSV
 
