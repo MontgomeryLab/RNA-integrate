@@ -1,4 +1,4 @@
-## RNA-Integrate: Integrative Pipeline for Parallel mRNA and small RNA Data
+# RNA-Integrate: Integrative Pipeline for Parallel mRNA and small RNA Data
 
 ## Table of Contents
 
