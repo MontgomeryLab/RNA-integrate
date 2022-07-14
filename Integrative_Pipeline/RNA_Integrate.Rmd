@@ -1,0 +1,523 @@
+---
+title: "Montgomery Integrative DESeq2 Pipeline"
+author: "Dr. Taiowa Montgomery and Spencer Kuhn"
+date: "4/21/2022"
+output: html_document
+params:
+  mrna_experiment_id: "mrna_demo"
+  small_rna_experiment_id: "small_rna_demo"
+  integrative_experiment_id: "integrative_demo"
+  
+  mrna_software_method: "rsem"
+  small_rna_software_method: "tiny_rna"
+  
+  mrna_counts_matrix: ""
+  small_rna_counts_matrix: "small_rna_counts_matrix.csv"
+  
+  mrna_metadata: "demo_mrna_metadata.csv"
+  small_rna_metadata: "demo_small_rna_metadata.csv"
+  
+  mrna_gene_table_method: "full_table"
+  small_rna_gene_table_method: "full_table"
+  
+  gene_table: "demo_gene_table.csv"
+  
+  generate_results_tables: TRUE
+  
+  generate_pca: TRUE
+  
+  generate_intra_condition: TRUE
+  
+  generate_mean_reads: TRUE
+  save_mean_reads_interactive: FALSE
+  p_value_threshold: 0.05
+  fold_change_threshold: 1.3
+  lower_transparency: 0.2
+  upper_transparency: 0.9
+  customize_by_class: TRUE
+  customize_by_significance: FALSE
+  mrna_class_parameters: "demo_class_parameters.csv"
+  small_rna_class_parameters: "demo_class_parameters.csv"
+  
+  generate_ma: TRUE
+  
+  generate_heatmap: TRUE
+  heatmap_type: "all_classes"
+  heatmap_selected_classes: ""
+  
+  cross_comparisons: ""
+  
+  generate_integrative_results_tables: TRUE
+  
+  generate_cosmic_plots: TRUE
+  
+  generate_slope_plots: TRUE
+  
+  slope_plot_classes: "ALG,CSR,miRNA,WAGO"
+---
+
+```{r params1,echo=FALSE,include=FALSE,warning=FALSE}
+
+# Install Knitr if Necessary
+if (require(knitr) == FALSE) {
+  install.packages("knitr")
+}
+
+# Import Knitr
+library(knitr)
+
+# Establish Small RNA Parameters
+small_rna_params = list(experiment_id = params$small_rna_experiment_id,
+                        software_method = params$small_rna_software_method,
+                        counts_matrix = params$small_rna_counts_matrix,
+                        metadata = params$small_rna_metadata,
+                        gene_table_method = params$small_rna_gene_table_method,
+                        gene_table = params$gene_table,
+                        generate_results_tables = params$generate_results_tables,
+                        generate_pca = params$generate_pca,
+                        generate_intra_condition = params$generate_intra_condition,
+                        generate_mean_reads = params$generate_mean_reads,
+                        save_mean_reads_interactive = params$save_mean_reads_interactive,
+                        p_value_threshold = params$p_value_threshold,
+                        fold_change_threshold = params$fold_change_threshold,
+                        lower_transparency = params$lower_transparency,
+                        upper_transparency = params$upper_transparency,
+                        customize_by_class = params$customize_by_class,
+                        customize_by_significance = params$customize_by_significance,
+                        class_parameters = params$small_rna_class_parameters,
+                        generate_ma = params$generate_ma,
+                        generate_heatmap = params$generate_heatmap,
+                        heatmap_type = params$heatmap_type,
+                        heatmap_selected_classes = params$heatmap_selected_classes)
+
+# Establish mRNA Parameters
+mrna_params = list(experiment_id = params$mrna_experiment_id,
+                   software_method = params$mrna_software_method,
+                   counts_matrix = params$mrna_counts_matrix,
+                   metadata = params$mrna_metadata,
+                   gene_table_method = params$mrna_gene_table_method,
+                   gene_table = params$gene_table,
+                   generate_results_tables = params$generate_results_tables,
+                   generate_pca = params$generate_pca,
+                   generate_intra_condition = params$generate_intra_condition,
+                   generate_mean_reads = params$generate_mean_reads,
+                   save_mean_reads_interactive = params$save_mean_reads_interactive,
+                   p_value_threshold = params$p_value_threshold,
+                   fold_change_threshold = params$fold_change_threshold,
+                   lower_transparency = params$lower_transparency,
+                   upper_transparency = params$upper_transparency,
+                   customize_by_class = params$customize_by_class,
+                   customize_by_significance = params$customize_by_significance,
+                   class_parameters = params$mrna_class_parameters,
+                   generate_ma = params$generate_ma,
+                   generate_heatmap = params$generate_heatmap,
+                   heatmap_type = params$heatmap_type,
+                   heatmap_selected_classes = params$heatmap_selected_classes)
+
+# Establish Integrative Parameters
+integrative_params = list(integrative_experiment_id = params$integrative_experiment_id,
+                          gene_table = params$gene_table,
+                          cross_comparisons = params$cross_comparisons,
+                          generate_integrative_results_tables = params$generate_integrative_results_tables,
+                          generate_cosmic_plots = params$generate_cosmic_plots,
+                          generate_slope_plots = params$generate_slope_plots,
+                          slope_plot_classes = params$slope_plot_classes)
+
+# Remove Parameters
+rm(params)
+
+```
+
+```{r small_rna,include=FALSE}
+
+# Execute Small RNA Pipeline
+rmarkdown::render("Montgomery_DESeq2_Pipeline.Rmd",output_file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),small_rna_params$experiment_id,".html"),params = small_rna_params)
+
+# Remove Parameters
+rm(params)
+
+# Store Objects for Integrative Analysis
+small_rna_dds = dds
+small_rna_cts = cts
+small_rna_cts_names = cts_names
+small_rna_common_names = common_names
+small_rna_class_names = class_names
+small_rna_res = res
+small_rna_combinations = combinations
+colnames(small_rna_combinations) = paste0(small_rna_combinations[2,],"_vs_",small_rna_combinations[1,])
+
+```
+
+```{r mrna,include=FALSE}
+
+# Execute mRNA Pipeline
+rmarkdown::render("Montgomery_DESeq2_Pipeline.Rmd",output_file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),mrna_params$experiment_id,".html"),params = mrna_params)
+
+# Remove Parameters
+rm(params)
+
+# Store Objects for Integrative Analysis
+mrna_dds = dds
+mrna_cts = cts
+mrna_cts_names = cts_names
+mrna_common_names = common_names
+mrna_class_names = class_names
+mrna_res = res
+mrna_combinations = combinations
+colnames(mrna_combinations) = paste0(mrna_combinations[2,],"_vs_",mrna_combinations[1,])
+
+```
+
+```{r integrative-setup,include=FALSE}
+
+# Install (if Necessary) and Load Plotly Package
+if (require(plotly) == FALSE) {
+  install.packages("plotly")
+}
+library(plotly)
+
+# Create Output Directory
+dir.create(paste0(getwd(),"/",format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_output/"))
+
+# Save YAML Parameters
+yaml::write_yaml(integrative_params,paste0(format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_output/",
+                                           integrative_params$integrative_experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),"params.yml"))
+
+# Import Gene Table
+gene_table = read.csv(integrative_params$gene_table)
+
+# Generate Matrix of Small RNA and mRNA Target Combinations
+target_matrix = NULL
+for (i in 1:length(gene_table[,1])) {
+  if (gene_table[i,1] %in% names(small_rna_cts_names)) {
+    for (j in strsplit(gene_table[i,4],",")[[1]]) {
+      if (j %in% names(mrna_cts_names)) {
+        target_matrix = rbind(target_matrix,c(gene_table[i,1],j))
+      }
+    }
+  }
+}
+
+# Cosmic Plot Function
+cosmic_plot = function(target_data,comparison_name) {
+  
+  # Produce Target Data Subsets
+  target_data_s_sig_m_insig = subset(target_data,target_data$small_rna_p_value < 0.05 & target_data$mrna_p_value > 0.05)
+  target_data_s_sig_m_sig = subset(target_data,target_data$small_rna_p_value < 0.05 & target_data$mrna_p_value < 0.05)
+  target_data_s_insig_m_insig = subset(target_data,target_data$small_rna_p_value > 0.05 & target_data$mrna_p_value > 0.05)
+  target_data_s_insig_m_sig = subset(target_data,target_data$small_rna_p_value > 0.05 & target_data$mrna_p_value < 0.05)
+  
+  # Plotly Call
+  cosmic_plot = plot_ly(width = 1250,height = 850) %>% 
+    
+    # Plot Points Significant for Both Small RNA and mRNA
+    add_trace(data = target_data_s_sig_m_sig,type = "scatter",mode = "markers",
+              x = ~small_rna_fold_change,y = ~mrna_fold_change,
+              size = ~mrna_mean,sizes = c(5,500),
+              color = ~log2(small_rna_mean),
+              opacity = 1.0,
+              marker = list(line = list(color = "#808080",width = 1)),
+              colors = c("#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5",
+                         "#08519C","#08306B","#041b3c","#000000"),
+              text = ~paste0("<b>small rna p < 0.05<br>mrna p < 0.05</b><br>",
+                             "<br>small rna: ",small_rna_cts_names[small_rna],
+                             "<br>small rna class: ",small_rna_class,"<br>",
+                             "<br>mrna target: ",mrna_cts_names[mrna_target],
+                             "<br>mrna class: ",mrna_class),
+              hoverinfo = "text",
+              name = "small rna p < 0.05<br>mrna p < 0.05") %>% 
+    
+    # Plot Points Significant for Small RNA, Insignificant for mRNA
+    add_trace(data = target_data_s_sig_m_insig,type = "scatter",mode = "markers",
+              x = ~small_rna_fold_change,y = ~mrna_fold_change,
+              size = I(3),
+              color = ~log2(small_rna_mean),
+              opacity = 0.6,
+              colors = c("#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5",
+                         "#08519C","#08306B","#041b3c","#000000"),
+              text = ~paste0("<b>small rna p < 0.05<br>mrna p > 0.05</b><br>",
+                             "<br>small rna: ",small_rna_cts_names[small_rna],
+                             "<br>small rna class: ",small_rna_class,"<br>",
+                             "<br>mrna target: ",mrna_cts_names[mrna_target],
+                             "<br>mrna class: ",mrna_class),
+              hoverinfo = "text",
+              name = "small rna p < 0.05<br>mrna p > 0.05") %>% 
+    
+    # Plot Points Insignificant for Small RNA, Significant for mRNA
+    add_trace(data = target_data_s_insig_m_sig,type = "scatter",mode = "markers",
+              x = ~small_rna_fold_change,y = ~mrna_fold_change,
+              size = ~mrna_mean,sizes = c(5,500),
+              color = I("#808080"),
+              marker = list(line = list(color = "#000000",width = 1)),
+              opacity = 0.2,
+              text = ~paste0("<b>small rna p > 0.05<br>mrna p < 0.05</b><br>",
+                             "<br>small rna: ",small_rna_cts_names[small_rna],
+                             "<br>small rna class: ",small_rna_class,"<br>",
+                             "<br>mrna target: ",mrna_cts_names[mrna_target],
+                             "<br>mrna class: ",mrna_class),
+              hoverinfo = "text",
+              name = "small rna p > 0.05<br>mrna p < 0.05") %>% 
+    
+    # Plot Points Insignificant for Both Small RNA and mRNA
+    add_trace(data = target_data_s_insig_m_insig,type = "scatter",mode = "markers",
+              x = ~small_rna_fold_change,y = ~mrna_fold_change,
+              size = I(3),
+              color = I("#808080"),
+              opacity = 0.2,
+              text = ~paste0("<b>small rna p > 0.05<br>mrna p > 0.05</b><br>",
+                             "<br>small rna: ",small_rna_cts_names[small_rna],
+                             "<br>small rna class: ",small_rna_class,"<br>",
+                             "<br>mrna target: ",mrna_cts_names[mrna_target],
+                             "<br>mrna class: ",mrna_class),
+              hoverinfo = "text",
+              name = "small rna p > 0.05<br>mrna p > 0.05") %>%
+    
+    # Specify Plot Layout, Legend, and Annotations
+    layout(title = list(text = paste0("<b>",comparison_name,"</b>"),font = list(size = 24),
+                        xref = "paper",x = 0,xanchor = "left"),
+           xaxis = list(title = "small rna log2 fold change"),
+           yaxis = list(title = "mrna log2 fold change"),
+           margin = list(t = 100),
+           legend = list(title = list(text = "<b>statistical significance</b>"),y = 1),
+           annotations = list(text = "<b>point size</b>: mrna mean<br>(for significant mrna genes)",
+                              font = list(size = 14),
+                              align = "left",
+                              xref = "paper",x = 1.02,xanchor = "left",yref = "paper",y=0.75,
+                              showarrow = FALSE)) %>% 
+    
+    # Specify Colorbar Layout
+    colorbar(title = "<b>color</b>: small rna log2 mean<br>(for significant small rna genes)<br> <br>",
+             x = 1.02,xpad = 0,xanchor = "left",y=0.7)
+  
+  # Object Return
+  return(cosmic_plot)
+}
+
+# Slope Plot Function
+slope_plot = function(target_data,comparison_name,slope_plot_classes) {
+  
+  # Build Slope Plot Data Matrix From Target Data
+  slope_plot_data = rbind(cbind(rep("small_rna",dim(target_data)[1]),1:dim(target_data)[1],as.matrix(target_data[,1:5])),
+                          cbind(rep("mrna",dim(target_data)[1]),1:dim(target_data)[1],as.matrix(target_data[,6:10])))
+  
+  # Rename Columns
+  colnames(slope_plot_data) = c("type","index","gene_id","class","mean","fold_change","p_value")
+  
+  # Convert Slope Plot Data to Data Frame
+  slope_plot_data = data.frame(slope_plot_data)
+  
+  # Isolate Data to Include Only Listed Slope Plot Classes
+  slope_plot_data = slope_plot_data[which(slope_plot_data$index %in% which(slope_plot_data$class %in% slope_plot_classes)),]
+  slope_plot_data$class = target_data$small_rna_class[as.numeric(slope_plot_data$index)]
+  
+  # Eliminate Listed Slope Plot Classes Not Present in the Data
+  slope_plot_classes = slope_plot_classes[which(slope_plot_classes %in% slope_plot_data$class)]
+  
+  # Default Colors List
+  class_colors = c("#1F78B4","#1B9E77","#E6AB02","#E7298A","#E31A1C","#6A3D9A","#A6761D","#000000",
+                   "#33A02C","#014421","#FF7F00","#8B0000","#FF9E84","#907567","#525252")
+  
+  # Assign Color Values by Iterating Through Default List
+  color_values = rep(class_colors,ceiling(length(slope_plot_classes)/length(class_colors)))[1:length(slope_plot_classes)]
+  names(color_values) = sort(slope_plot_classes)
+  
+  # Assign Transparency Values
+  alpha_values = NULL
+  for (i in sort(slope_plot_classes)) {
+    
+    # Assign Value Inversely Proportional to Number of Genes in Each Class
+    alpha_values = c(alpha_values,1/(1+(length(which(slope_plot_data$class == i))/100)))
+    
+  }
+  
+  # GGplot2 Call
+  slope_plot = ggplot(data = slope_plot_data,
+                    aes(x = factor(type,levels = c("small_rna","mrna")),y = as.numeric(fold_change),group = index)) + 
+    geom_line(aes(color = factor(class),alpha = factor(class)),size = 0.5) + 
+    scale_color_manual(values = color_values,name = "Feature Class") + 
+    scale_alpha_manual(values = alpha_values,guide = "none") + 
+    xlab("Feature Type") + 
+    scale_x_discrete(expand = expansion(mult = 0)) + 
+    ylab("Log2 Fold Change") + 
+    ggtitle(comparison_name) + 
+    theme_classic() + 
+    theme(axis.text = element_text(size = 12),axis.title = element_text(size = 12)) 
+  
+  # Object Return
+  return(slope_plot)
+}
+
+```
+
+```{r integrative-render,include=FALSE}
+
+# Knit Object Setup
+integrative_results_tables_out = NULL
+cosmic_plots_out = NULL
+slope_plots_out = NULL
+
+# Pass message to HTML output if plots are not marked for rendering
+if (integrative_params$generate_integrative_results_tables == FALSE) {
+  integrative_results_tables_out = "Integrative Results Tables not marked for rendering"
+}
+if (integrative_params$generate_cosmic_plots == FALSE) {
+  cosmic_plots_out = "Cosmic Plots not marked for rendering"
+}
+if (integrative_params$generate_slope_plots == FALSE) {
+  slope_plots_out = "Slope Plots not marked for rendering"
+}
+
+# Produce Combination List for Interactive Tables and Plots
+if (integrative_params$cross_comparisons == "") {
+  cross_comparisons = intersect(colnames(small_rna_combinations),colnames(mrna_combinations))
+} else {
+  cross_comparisons = unlist(strsplit(integrative_params$cross_comparisons,","))
+}
+
+# Build List of Slope Plot Classes
+if (integrative_params$slope_plot_classes == "") {
+  slope_plot_classes = levels(as.factor(gene_table[,3]))
+} else {
+  slope_plot_classes = unlist(strsplit(integrative_params$slope_plot_classes,","))
+}
+
+# Comparison-Wise Rendering
+for (i in 1:length(cross_comparisons)) {
+  
+  # Match Intended Comparisons with Results Object IDs
+  small_rna_res_id = which(colnames(small_rna_combinations) == cross_comparisons[i])
+  mrna_res_id = which(colnames(mrna_combinations) == cross_comparisons[i])
+  
+  # Construct Target Data Matrix
+  target_data = na.omit(as.matrix(cbind(target_matrix[,1],small_rna_class_names[target_matrix[,1]],
+                                        small_rna_res[[small_rna_res_id]][target_matrix[,1],c(1,2,6)],
+                                        target_matrix[,2],mrna_class_names[target_matrix[,2]],
+                                        mrna_res[[mrna_res_id]][target_matrix[,2],c(1,2,6)])))
+  
+  # Define Target Data Matrix Column Names
+  colnames(target_data) = c("small_rna","small_rna_class",
+                            "small_rna_mean","small_rna_fold_change","small_rna_p_value",
+                            "mrna_target","mrna_class",
+                            "mrna_mean","mrna_fold_change","mrna_p_value")
+  
+  # Convert Appropriate Columns to Numeric Data
+  target_data = data.frame(target_data)
+  target_data$small_rna_mean = as.numeric(target_data$small_rna_mean)
+  target_data$small_rna_fold_change = as.numeric(target_data$small_rna_fold_change)
+  target_data$small_rna_p_value = as.numeric(target_data$small_rna_p_value)
+  target_data$mrna_mean = as.numeric(target_data$mrna_mean)
+  target_data$mrna_fold_change = as.numeric(target_data$mrna_fold_change)
+  target_data$mrna_p_value = as.numeric(target_data$mrna_p_value)
+  
+  # Assign Object for Knitting Plots
+  assign(paste0("target_data",i,"_plots"),target_data)
+  
+  # Integrative Results Tables Rendering and Saving
+  if (integrative_params$generate_integrative_results_tables == TRUE) {
+    
+    # Round Numeric Columns
+    for (j in c(3:5,8:10)) {
+      target_data[,j] = round(as.numeric(target_data[,j]),digits = 3)
+    }
+    
+    # Assign Object for Knitting Tables
+    assign(paste0("target_data",i),target_data)
+    
+    # Table Saving
+    write.csv(target_data,paste0(format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_output/",
+                                 format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_",
+                                 cross_comparisons[i],"_integrative_data.csv"),row.names = FALSE)
+    
+    # Knit Object Generation
+    integrative_results_tables_out = c(integrative_results_tables_out,knit_expand(text = paste0("### ",sub("_vs_"," vs ",cross_comparisons[i]))))
+    integrative_results_tables_out = c(integrative_results_tables_out,knit_expand(text = "```{r integrative-tables{{i}},echo=FALSE,warning=FALSE}\n datatable(target_data{{i}})\n```\n"))
+    
+  } else {
+    
+    # Null Plots Rendering
+    integrative_results_tables_out = c(integrative_results_tables_out,"")
+    
+  }
+  
+  # Cosmic Plot Rendering and Saving
+  if (integrative_params$generate_cosmic_plots == TRUE) {
+    
+    # HTML Widget Saving
+    htmlwidgets::saveWidget(cosmic_plot(target_data,sub("_vs_"," vs ",cross_comparisons[i])),
+                            paste0(format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_output/",
+                                   format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_",
+                                   cross_comparisons[i],"_cosmic_plot.html"))
+    
+    # Remove Accessory Cosmic Plot Files
+    unlink(paste0(format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_output/",
+                  format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_",
+                  cross_comparisons[i],"_cosmic_plot_files/"),recursive = TRUE)
+    
+    
+    # Knit Object Generation
+    cosmic_plots_out = c(cosmic_plots_out,knit_expand(text = paste0("### ",sub("_vs_"," vs ",cross_comparisons[i]))))
+    cosmic_plots_out = c(cosmic_plots_out,knit_expand(text = "```{r cosmic-plots{{i}},echo=FALSE,warning=FALSE}\n cosmic_plot(target_data{{i}}_plots,sub('_vs_',' vs ',cross_comparisons[{{i}}]))\n```\n"))
+    
+  } else {
+    
+    # Null Plots Rendering
+    cosmic_plots_out = c(cosmic_plots_out,"")
+    
+  }
+  
+  # Slope Plot Rendering and Saving
+  if (integrative_params$generate_slope_plots == TRUE) {
+    
+    # Plot Saving
+    pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_output/",
+               format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_",
+               cross_comparisons[i],"_slope_plot.pdf"),
+        title = paste0("Slope Plot"),height = 6.5,width = 6.5)
+    print(slope_plot(target_data,sub("_vs_"," vs ",cross_comparisons[i]),slope_plot_classes))
+    dev.off()
+    
+    # Knit Object Generation
+    slope_plots_out = c(slope_plots_out,knit_expand(text = paste0("### ",sub("_vs_"," vs ",cross_comparisons[i]))))
+    slope_plots_out = c(slope_plots_out,knit_expand(text = "```{r slope-plot{{i}},echo=FALSE,warning=FALSE}\n slope_plot(target_data{{i}}_plots,sub('_vs_',' vs ',cross_comparisons[{{i}}]),slope_plot_classes)\n```\n"))
+    
+  } else {
+    
+    # Null Plots Rendering
+    slope_plots_out = c(slope_plots_out,"")
+    
+  }
+}
+
+```
+
+Welcome to the Montgomery DESeq2 Pipeline for small RNA and mRNA integrative experiments. This pipeline allows for the analysis and visualization of data describing the interactions between small RNA and mRNA components of the same experiment. First, separate runs of the Montgomery R Markdown pipeline for individual experiments are executed, once for the small RNA data and once for the mRNA data. Then, information found in an imported gene table describing targets for each small RNA or mRNA gene is used to produce integrative results tables, cosmic scatter plots, and slope plots. To see more information about the individual experiment Markdown pipeline, visit https://github.com/MontgomeryLab/DESeq2App/tree/main/Markdown_Pipeline. To see more information about the integrative R Markdown pipeline, visit https://github.com/MontgomeryLab/DESeq2App/tree/main/Integrative_Pipeline.
+
+## Integrative Results Tables
+
+Integrative Results Tables include the class, base mean, fold change, and negative binomial test p-value for every small RNA and mRNA target pairing for which valid data is available (some low count genes have indeterminable fold changes and p-values. These genes have therefore been excluded). Classes are derived from the imported gene table. Base mean, fold change, and p-value entries are derived from the DESeq2 analysis. 
+
+## Rendered Plots {.tabset}
+
+`r paste(knit(text = integrative_results_tables_out),collapse = '\n')`
+
+\newpage
+
+## Cosmic Plots
+
+Cosmic Plots utilize ggplot2 techniques for representing five-dimensions of data within a two-dimensional scatter plot. The log2 fold change of the small RNA gene in each small RNA and mRNA pairing is represented on the x-axis, while the log2 fold change of the mRNA target of the corresponding small RNA is represented on the y-axis. Furthermore, pairings with an insignificant small RNA p-value (p > 0.05) are plotted in light grey, and pairings with a significant mRNA p-value (p < 0.05) are given a dark grey border around the point. Points are sized according to their mRNA log2 mean, and they are colored (if the small RNA p-value is significant) on a modified 'blues' color scale from the RColorBrewer packageaccording to their small RNA mean (not log2 transformed for better texturing), with darker blues and black representing higher means. Thus, a comprehensive view of every small RNA and mRNA pairing across the two individual experiments can be visualized amongst the plot's four quadrants. Using the plotly package, these scatter plots offer zooming, panning, significance group isolation, and hover text features. Plots for each experimental contrast (provided the contrast is present in both experiments and specified in the associated yaml parameter) are saved as html widgets, which can be printed within a browser window to high-quality pdf images. 
+
+## Rendered Plots {.tabset}
+
+`r paste(knit(text = cosmic_plots_out),collapse = '\n')`
+
+\newpage
+
+## Slope Plots
+
+Slope Plots provide another way of visualizing fold change relationships between small RNA and mRNA pairings, namely by tracing a straight line between the fold change level of the small RNA gene on the left side of the plot and the fold change level of the corresponding mRNA target on the right side of the plot. Lines are colored by their class as specified in the gene table (colors are built from a high-contrast, accessible palette developed by the Montgomery Lab), and it is recommended that classes representing smaller numbers of genes be singled out for plotting using the associated yaml parameter. This plot may be most useful for analyzing micro RNA (miRNA) and mRNA target relationships from one experimental condition to the other. Furthermore, line opacity for a certain class is inversely proportional to the number of genes in that class according to the function opacity = (1/(1 + n/100)), where n is the number of genes for a class. Thus, classes with an abundance of genes will appear more transparent. Lines from classes with over 5000 genes will be colored grey automatically in order to preserve visualization texture. Plots for each experimental contrast (provided the contrast is present in both experiments and specified in the associated yaml parameter) are saved as pdf files. 
+
+## Rendered Plots {.tabset}
+
+`r paste(knit(text = slope_plots_out),collapse = '\n')`
+
+\newpage
