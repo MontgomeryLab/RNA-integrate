@@ -4,12 +4,12 @@ author: "Dr. Taiowa Montgomery and Spencer Kuhn"
 date: "3/3/2022"
 output: html_document
 params:
-  experiment_id: "worm1"
-  software_method: "Counts Matrix"
-  counts_matrix: "count_matrix.csv"
-  metadata: "metadata.csv"
-  gene_table_method: "Full Table"
-  gene_table: "gene_table.csv"
+  experiment_id: "small_rna_demo"
+  software_method: "tiny_rna"
+  counts_matrix: "small_rna_counts_matrix.csv"
+  metadata: "demo_small_rna_metadata.csv"
+  gene_table_method: "full_table"
+  gene_table: "demo_gene_table.csv"
   generate_results_tables: TRUE
   generate_pca: TRUE
   generate_intra_condition: TRUE
@@ -21,11 +21,11 @@ params:
   upper_transparency: 0.9
   customize_by_class: TRUE
   customize_by_significance: FALSE
-  class_parameters: "class_parameters.csv"
+  class_parameters: "demo_class_parameters.csv"
   generate_ma: TRUE
   generate_heatmap: TRUE
-  heatmap_type: "Complete"
-  heatmap_selected_classes: "ALG,CSR,WAGO"
+  heatmap_type: "complete"
+  heatmap_selected_classes: ""
 ---
 
 ```{r,echo=FALSE,include=FALSE,warning=FALSE}
@@ -78,7 +78,7 @@ yaml::write_yaml(params,paste0(format(Sys.Date(),format = "%d_%m_%y_"),params$ex
 if (params$software_method == "counts_matrix") {counts_matrix = read.csv(params$counts_matrix)} else {counts_matrix = NULL}
 
 # Conditional Import of tiny RNA Matrix
-if (params$software_method == "tiny_rna") {tiny_rna_matrix = read.csv(params$counts_matrix)} else {tiny_rna_matrix = NULL}
+if (params$software_method == "tiny_rna") {tiny_rna_matrix_raw = read.csv(params$counts_matrix)} else {tiny_rna_matrix_raw = NULL}
 
 # Import Metadata File
 metadata = read.csv(params$metadata)
@@ -143,14 +143,18 @@ counts_matrix_prep = function(counts_matrix) {
 tiny_rna_matrix_prep = function(tiny_rna_matrix) {
   
   # Separate Common Names
-  tiny_rna_matrix[,1] = tiny_rna_matrix[,2]
   for (i in 1:length(tiny_rna_matrix[,1])) {
-    if (!is.na(strsplit(tiny_rna_matrix[i,1],", ")[[1]][2])) {
-      tiny_rna_matrix[i,2] = strsplit(tiny_rna_matrix[i,1],", ")[[1]][2]
+    
+    if (is.na(strsplit(tiny_rna_matrix[i,1],":")[[1]][2])) {
+      tiny_rna_matrix[i,1] = strsplit(tiny_rna_matrix[i,1],":")[[1]][1]
     } else {
-      tiny_rna_matrix[i,2] = strsplit(tiny_rna_matrix[i,1],", ")[[1]][1]
+      tiny_rna_matrix[i,1] = strsplit(tiny_rna_matrix[i,1],":")[[1]][2]
     }
-    tiny_rna_matrix[i,1] = strsplit(tiny_rna_matrix[i,1],", ")[[1]][1]
+    
+    tiny_rna_matrix[i,2] = strsplit(tiny_rna_matrix[i,2],", ")[[1]][2]
+    if (is.na(tiny_rna_matrix[i,2])) {
+      tiny_rna_matrix[i,2] = tiny_rna_matrix[i,1]
+    }
   }
   
   # Reconcile Repeated Values
@@ -197,7 +201,8 @@ if (params$software_method == "htseq") {
 } else if (params$software_method == "tiny_rna") {
   
   # tiny RNA Option
-  tiny_rna_matrix = tiny_rna_matrix_prep(tiny_rna_matrix)[,-c(1,2)]
+  tiny_rna_matrix_raw = tiny_rna_matrix_prep(tiny_rna_matrix_raw)
+  tiny_rna_matrix = tiny_rna_matrix_raw[,-c(1,2)]
   colnames(tiny_rna_matrix) = rownames(sample_table)
   dds = DESeqDataSetFromMatrix(tiny_rna_matrix,sample_table,~condition)
   
@@ -250,7 +255,7 @@ for (i in 1:length(combinations[1,])) {
 
 # Conditional Gene Table Import
 if (params$software_method == "tiny_rna") {
-  gene_table = tiny_rna_matrix_prep(tiny_rna_matrix)[,c(1,2)]
+  gene_table = cbind(rownames(tiny_rna_matrix_raw),tiny_rna_matrix_raw[,c(1,2)])
 } else if (params$gene_table_method == "no_table") {
   gene_table = NULL
 } else {
@@ -422,7 +427,7 @@ pca_input = function() {
   pca = ggplot_add(ggtitle(paste0(experiment_id," PCA Plot")),pca)
   
   # Revert to Classic Theme
-  pca = ggplot_add(theme_classic() + theme(plot.title = element_text(hjust = 0.5)),pca)
+  pca = ggplot_add(theme_classic() + theme(plot.title = element_text(hjust = 0.5),aspect.ratio=1),pca)
   
   # Object Return
   return(pca)
@@ -529,7 +534,7 @@ Insignificant genes will be colored grey if the <strong>customize by significanc
 ```{r,include=FALSE,message=FALSE,warning=FALSE}
 
 # Conditional Class Parameters Generation or Import
-if (params$customize_by_class == FALSE | params$gene_table_method == "no_table" | params$gene_table_method == "common_names_only") {
+if (params$customize_by_class == FALSE | is.null(class_names)) {
   
   # Conditional Nullification of Class Parameters
   class_parameters = NULL
@@ -702,8 +707,8 @@ mean_reads_input = function(res,group1,group2) {
     ggtitle(paste0(group2,' vs ',group1)) +
     
     # Axis Labeling
-    xlab(paste0('Log2 Average reads in ',group1)) +
-    ylab(paste0('Log2 Average reads in ',group2)) +
+    xlab(paste0('log2 average reads in ',group1)) +
+    ylab(paste0('log2 average reads in ',group2)) +
     
     # Theme Specification
     theme_classic() + 

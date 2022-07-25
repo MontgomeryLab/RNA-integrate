@@ -1,0 +1,7 @@
+files,replicates,condition,control_condition
+______,______,control,TRUE
+______,______,control,TRUE
+______,______,control,TRUE
+______,______,treatment,FALSE
+______,______,treatment,FALSE
+______,______,treatment,FALSE
