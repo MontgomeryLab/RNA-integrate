@@ -14,6 +14,7 @@
 When the appropriate packages are installed, the command line (macOS) can also be used to analyze demo data with the following commands:
 
 Integrative Pipeline: `R -e 'rmarkdown::render("RNA_Integrate.Rmd",params = yaml::read_yaml("int_params.yml"))'`
+
 Basic Markdown Pipeline: `R -e 'rmarkdown::render("Montgomery_DESeq2_Pipeline.Rmd",params = yaml::read_yaml("params.yml"))'`
 
 For Windows Users, it is advised to run the pipelines from within Rstudio
