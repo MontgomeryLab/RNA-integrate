@@ -23,17 +23,18 @@
 
 Welcome to the R Shiny DESeq2 graphics app by the Montgomery Lab at Colorado State University. This pipeline uses tabulated counts files from mRNA or small RNA sequencing experiments to produce differential gene expression (DGE) analysis results and visualizations. In addition to the interactive app interface, the pipeline saves csv, pdf, or html files to an output folder within the local directory off the app script as well as a YAML describing the user input parameters used for that experimental run.
 
-The app can be launched within R studio using the following command:
+To Launch This App:
 
-`shiny::runApp("Montgomery_DESeq2_App.R")`
-
-Or in the command line as such:
-
-`R -e 'shiny::runApp("Montgomery_DESeq2_App.R")'`
+1. Clone the repository
+2. Open the latest version of Rstudio
+3. Set the working directory to the 'Shiny_App' folder of the repository
+4. In the console, run `shiny::runApp()`
+5. The app should appear in its own window
+6. Demo files are present within the directory. See [User Inputs](#user-inputs) for more information
 
 ## Installation
 
-This app has been developed and tested with R version <strong>4.1.2</strong>. Several packages are required in order to launch and run the app. These packages will be installed if necessary within the markdown code, but note that some packages may be difficult to install if version inconsistencies and dependency issues arise. For troubleshooting, we suggest trying to install any troublesome packages individually within R studio. We recommend using BioConductor for installing <strong>tximport and DESeq2</strong>. To install a package individually, use the following command in R:
+This app has been developed and tested with R version <strong>4.1.2</strong>. Several packages are required in order to launch and run the app. These packages will be installed if necessary within the app code, but note that some packages may be difficult to install if version inconsistencies and dependency issues arise. For troubleshooting, we suggest trying to install any troublesome packages individually within R studio. We recommend using BioConductor for installing <strong>tximport and DESeq2</strong>. To install a package individually, use the following command in R:
 
 `install.packages("Package Name")`
 
@@ -68,11 +69,11 @@ A <strong>Parameters</strong> tab, shown upon launching the app, walks users thr
 
 <strong>Initial Setup</strong>
 - Experiment ID: a short string with no spaces or special characters that distinguishes a particular experimental run. The experiment id will be prepended in the names of the output directory and saved files. 
-- Tabulation Software: the tabulation software used to produce counts files or a counts matrix. Options include <strong>Counts Matrix</strong> (FeatureCounts), <strong>tiny RNA</strong> (developed by the Montgomery Lab - https://github.com/MontgomeryLab/tinyRNA), <strong>RSEM</strong>, <strong>HTSeq</strong>, <strong>Salmon</strong>, and <strong>Kallisto</strong>. 
+- Tabulation Software: the tabulation software used to produce counts files or a counts matrix. Options include <strong>Counts Matrix</strong> (FeatureCounts), <strong>tiny RNA</strong> (developed by the Montgomery Lab - https://github.com/MontgomeryLab/tinyRNA), <strong>RSEM</strong>, <strong>HTSeq</strong>, <strong>Salmon</strong>, and <strong>Kallisto</strong>. The demo files present within the app directory are <strong>RSEM</strong> files. 
   - Counts Matrix: selection from the working directory of the counts matrix file if the <strong>Tabulation Software</strong> selection is <strong>Counts Matrix</strong> or <strong>tiny RNA</strong>.
 
 <strong>Metadata</strong>
-- Metadata Method: describes whether to use an existing metadata file in the working directory or generate a new metadata file within the app. See [Metadata CSV](#metadata-csv).
+- Metadata Method: describes whether to use an existing metadata file in the working directory or generate a new metadata file within the app. See [Metadata CSV](#metadata-csv). To use the demo metadata file, select <strong>Working Directory</strong> and choose the file <strong>demo_mrna_metadata.csv</strong>
   - If <strong>Working Directory</strong> is chosen as the <strong>Metadata Method</strong>:
     - Selected Metadata: selection from the working directory of the metadata csv.
   - If <strong>Generate New</strong> is chosen as the <strong>Metadata Method</strong>:
@@ -80,7 +81,7 @@ A <strong>Parameters</strong> tab, shown upon launching the app, walks users thr
     - Condition Name, Control Status, and Condition Files: prompts users to enter information about each experimental condition if <strong>Generate New</strong> is chosen as the <strong>Metadata Method</strong>.
 
 <strong>Gene Table</strong>
-- Gene Table Method: describes the type of gene table, if any, that will be imported for the experiment. options include <strong>Full Table</strong>, <strong>Common Names Only</strong>, <strong>Gene Class Only</strong>, and <strong>No Table</strong>. see [Gene Table](#gene-table).
+- Gene Table Method: describes the type of gene table, if any, that will be imported for the experiment. options include <strong>Full Table</strong>, <strong>Common Names Only</strong>, <strong>Gene Class Only</strong>, and <strong>No Table</strong>. see [Gene Table](#gene-table). To use the demo gene table, select <strong>Full Table</strong> and then <strong>demo_gene_table.csv</strong>.
   - Gene Table: selection from the working directory the gene table, unless <strong>No Table</strong> is chosen as the <strong>Gene Table Method</strong>.
 
 <strong>Plot Parameters</strong>
@@ -100,6 +101,7 @@ A <strong>Parameters</strong> tab, shown upon launching the app, walks users thr
         - Point Color and Point Size: prompts users to enter information about each selected class if the <strong>Generate Class Parameters</strong> box is checked.
       - If <strong>Generate Class Parameters</strong> is not checked
         - Select Class Parameters: selection from working directory of the class parameters csv. If left blank, a default class parameters csv will be generated including all classes listed in the gene table.
+        - To use the demo class parameters csv, select the file named <strong>demo_class_parameters.csv</strong>
 
 <strong>Heatmap</strong>
 - Heatmap Type: describes what type of heatmap is to be rendered and saved. Options include <strong>Complete</strong>, <strong>All Classes</strong>, and <strong>Selected Slasses</strong>. See [Heatmap](#heatmap). If no gene table is uploaded, a complete heatmap will be rendered, and the input widget will not be shown. 
