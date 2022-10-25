@@ -1,0 +1,5 @@
+files,replicates,condition,control_condition
+wt_1_mRNA_counts.txt,wt_1,wt,TRUE
+wt_2_mRNA_counts.txt,wt_2,wt,TRUE
+piwi_1_mRNA_counts.txt,piwi_1,piwi,FALSE
+piwi_2_mRNA_counts.txt,piwi_2,piwi,FALSE
