@@ -23,17 +23,18 @@
 
 Welcome to the R Shiny DESeq2 graphics app by the Montgomery Lab at Colorado State University. This pipeline uses tabulated counts files from mRNA or small RNA sequencing experiments to produce differential gene expression (DGE) analysis results and visualizations. In addition to the interactive app interface, the pipeline saves csv, pdf, or html files to an output folder within the local directory off the app script as well as a YAML describing the user input parameters used for that experimental run.
 
-The app can be launched within R studio using the following command:
+To Launch This App:
 
-`shiny::runApp("Montgomery_DESeq2_App.R")`
-
-Or in the command line as such:
-
-`R -e 'shiny::runApp("Montgomery_DESeq2_App.R")'`
+1. Clone the repository
+2. Open the latest version of Rstudio
+3. Set the working directory to the 'Shiny_App' folder of the repository
+4. In the console, run `shiny::runApp()`
+5. The app should appear in its own window
+6. Demo files are present within the directory. See [User Inputs](#user-inputs) for more information
 
 ## Installation
 
-This app has been developed and tested with R version <strong>4.1.2</strong>. Several packages are required in order to launch and run the app. These packages will be installed if necessary within the markdown code, but note that some packages may be difficult to install if version inconsistencies and dependency issues arise. For troubleshooting, we suggest trying to install any troublesome packages individually within R studio. We recommend using BioConductor for installing <strong>tximport and DESeq2</strong>. To install a package individually, use the following command in R:
+This app has been developed and tested with R version <strong>4.1.2</strong>. Several packages are required in order to launch and run the app. These packages will be installed if necessary within the app code, but note that some packages may be difficult to install if version inconsistencies and dependency issues arise. For troubleshooting, we suggest trying to install any troublesome packages individually within R studio. We recommend using BioConductor for installing <strong>tximport and DESeq2</strong>. To install a package individually, use the following command in R:
 
 `install.packages("Package Name")`
 
@@ -68,11 +69,11 @@ A <strong>Parameters</strong> tab, shown upon launching the app, walks users thr
 
 <strong>Initial Setup</strong>
 - Experiment ID: a short string with no spaces or special characters that distinguishes a particular experimental run. The experiment id will be prepended in the names of the output directory and saved files. 
-- Tabulation Software: the tabulation software used to produce counts files or a counts matrix. Options include <strong>Counts Matrix</strong> (FeatureCounts), <strong>tiny RNA</strong> (developed by the Montgomery Lab - https://github.com/MontgomeryLab/tinyRNA), <strong>RSEM</strong>, <strong>HTSeq</strong>, <strong>Salmon</strong>, and <strong>Kallisto</strong>. 
+- Tabulation Software: the tabulation software used to produce counts files or a counts matrix. Options include <strong>Counts Matrix</strong> (FeatureCounts), <strong>tiny RNA</strong> (developed by the Montgomery Lab - https://github.com/MontgomeryLab/tinyRNA), <strong>RSEM</strong>, <strong>HTSeq</strong>, <strong>Salmon</strong>, and <strong>Kallisto</strong>. The demo files present within the app directory are <strong>RSEM</strong> files. 
   - Counts Matrix: selection from the working directory of the counts matrix file if the <strong>Tabulation Software</strong> selection is <strong>Counts Matrix</strong> or <strong>tiny RNA</strong>.
 
 <strong>Metadata</strong>
-- Metadata Method: describes whether to use an existing metadata file in the working directory or generate a new metadata file within the app. See [Metadata CSV](#metadata-csv).
+- Metadata Method: describes whether to use an existing metadata file in the working directory or generate a new metadata file within the app. See [Metadata CSV](#metadata-csv). To use the demo metadata file, select <strong>Working Directory</strong> and choose the file <strong>demo_mrna_metadata.csv</strong>
   - If <strong>Working Directory</strong> is chosen as the <strong>Metadata Method</strong>:
     - Selected Metadata: selection from the working directory of the metadata csv.
   - If <strong>Generate New</strong> is chosen as the <strong>Metadata Method</strong>:
@@ -80,7 +81,7 @@ A <strong>Parameters</strong> tab, shown upon launching the app, walks users thr
     - Condition Name, Control Status, and Condition Files: prompts users to enter information about each experimental condition if <strong>Generate New</strong> is chosen as the <strong>Metadata Method</strong>.
 
 <strong>Gene Table</strong>
-- Gene Table Method: describes the type of gene table, if any, that will be imported for the experiment. options include <strong>Full Table</strong>, <strong>Common Names Only</strong>, <strong>Gene Class Only</strong>, and <strong>No Table</strong>. see [Gene Table](#gene-table).
+- Gene Table Method: describes the type of gene table, if any, that will be imported for the experiment. options include <strong>Full Table</strong>, <strong>Common Names Only</strong>, <strong>Gene Class Only</strong>, and <strong>No Table</strong>. see [Gene Table](#gene-table). To use the demo gene table, select <strong>Full Table</strong> and then <strong>demo_gene_table.csv</strong>.
   - Gene Table: selection from the working directory the gene table, unless <strong>No Table</strong> is chosen as the <strong>Gene Table Method</strong>.
 
 <strong>Plot Parameters</strong>
@@ -100,6 +101,7 @@ A <strong>Parameters</strong> tab, shown upon launching the app, walks users thr
         - Point Color and Point Size: prompts users to enter information about each selected class if the <strong>Generate Class Parameters</strong> box is checked.
       - If <strong>Generate Class Parameters</strong> is not checked
         - Select Class Parameters: selection from working directory of the class parameters csv. If left blank, a default class parameters csv will be generated including all classes listed in the gene table.
+        - To use the demo class parameters csv, select the file named <strong>demo_class_parameters.csv</strong>
 
 <strong>Heatmap</strong>
 - Heatmap Type: describes what type of heatmap is to be rendered and saved. Options include <strong>Complete</strong>, <strong>All Classes</strong>, and <strong>Selected Slasses</strong>. See [Heatmap](#heatmap). If no gene table is uploaded, a complete heatmap will be rendered, and the input widget will not be shown. 
@@ -139,19 +141,19 @@ The class parameters csv is used to customize [Mean Reads Scatter Plots](#mean-r
 
 Results tables display the gene-wise counts from each replicate in a given contrast, followed by the fold change value of each gene and the associated p-value (adjusted) of the negative binomial hypothesis test conducted by DESeq2. Lower p-values indicate a lower probability of the null hypothesis that counts between the two conditions are derived from the same distributional parameters. Furthermore, any common gene names and/or classes from an uploaded gene table will be included in columns beside the Gene ID column. In addition to csv outputs, these tables are rendered within the app as html widgets with <strong>sorting, searching, and page size customization</strong> features.
 
-<img src=../Demo/mRNA_Demo_Results/mrna_demo_piwi_vs_wt_Results.png width="800" height="500">
+<img src=../Demo/mRNA_Demo_Results/mrna_demo_results.png width="800" height="500">
 
 ### PCA Plot
 
 The PCA plot displays loadings of the first two principal components for each sample/biological replicate in the experimental design. Colored by experimental condition, the points of the PCA plot provide a visualization of clustering amongst the samples, both within conditions and across conditions.
 
-<img src=../Demo/mRNA_Demo_Results/mrna_demo_PCA_Plot.jpg width="600" height="500">
+<img src=../Demo/mRNA_Demo_Results/mrna_demo_pca_plot.jpg width="600" height="500">
 
 ### Intra-Condition Scatter Plot
 
 The Intra-Condition Scatter Plots display log2 counts between pairs of biological replicates within each condition of the experimental design. Any counts in the data below 1 are replaced with a value of 1 to simplify the log2 transformation. All replicate pairs in each condition are displayed.
 
-<img src=../Demo/mRNA_Demo_Results/mrna_demo_Intra_Condition.jpg width="700" height="600">
+<img src=../Demo/mRNA_Demo_Results/mrna_demo_intra_condition.jpg width="700" height="600">
 
 ### Mean Reads Scatter Plots
 
@@ -159,13 +161,13 @@ The Mean Reads Scatter Plots display average log2 counts across biological repli
 
 The mean reads scatter plots can be customized by changing the <strong>p-value</strong> and <strong>fold change</strong> thresholds for distinguishing statistically significant genes. Furthermore, <strong>upper and lower transparency</strong> thresholds can be set for distinguishing statistical significance. The lower threshold corresponds to insignificant genes. The points of the plot can also be <strong>colored and sized</strong> according to their gene classes as specified by the <strong>gene table</strong>. If no gene table has been selected/uploaded, only the p-value, fold change, and transparency thresholds will be customizable. If a gene table has been selected/uploaded, a class parameters csv can be selected from the working directory or produced within the app. If used, only points/genes corresponding to classes in the table will be plotted. If no class parameters csv is selected, every class will be automatically colored from a default list of 15 colors, and every point will be sized with a cex value of 0.3. Insignificant genes will be colored grey if the <strong>Customize By Significance</strong> box is checked.
 
-<img src=../Demo/mRNA_Demo_Results/mrna_demo_piwi_vs_wt_Mean_Reads.jpg width="700" height="600">
+<img src=../Demo/mRNA_Demo_Results/mrna_demo_mean_reads.jpg width="700" height="600">
 
 ### MA Plots
 
 The Standard MA Plots are built from the DESeq2 package and display the fold change of a gene over its mean counts value (normalized) for a provided contrast between experimental conditions. Genes with a statistically significant p-value (p < 0.05) are colored in <strong>blue</strong>.
 
-<img src=../Demo/mRNA_Demo_Results/mrna_demo_piwi_vs_wt_MA_Plot.jpg width="600" height="600">
+<img src=../Demo/mRNA_Demo_Results/mrna_demo_ma_plot.jpg width="600" height="600">
 
 ### Heatmap
 
