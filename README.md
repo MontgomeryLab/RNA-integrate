@@ -2,7 +2,7 @@
 
 # RNA-integrate (RNA-i): integrative analysis of small RNA and mRNA high-throughput sequencing data
 
-RNA-i performs differential small RNA and mRNA expression analysis using DESeq2 and integrated the results to identify small RNA-mRNA target relationships. The application can be run as an R script or as a R Shiny app. The Shiny app provides a user-friendly and interactive interface for first-time users, while the markdown provides a rapid and highly configurable workflow for more experienced users. Counts tables and a file with information on small RNA-mRNA target pairs are input and integrate differential gene expresion tables and plots are output. 
+RNA-i performs differential small RNA and mRNA expression analysis using DESeq2 and integrates the results to identify small RNA-mRNA target relationships. The application can be run as an R script or as an R Shiny app. The Shiny app provides a user-friendly and interactive interface for first-time users, while the markdown provides a rapid and highly configurable workflow for more experienced users. Counts tables and a file with information on small RNA-mRNA target pairs are input and integrate differential gene expresion tables and plots are output. 
 
 The workflow can be run individually for mRNA or small RNA data analysis or in the integrative mode. The quick start guides below illustrate our basic execution process for each version of the workflow. 
 
