@@ -1,8 +1,10 @@
-# Montgomery Lab DESeq2 Pipeline
+:construction: Under Construction! :construction:
 
-Welcome to the Montgomery DESeq2 Pipeline in R Markdown and R Shiny, developed by the Montgomery Lab at Colorado State University. Our pipelines use tabulated counts files from a variety of software types to produce data analysis and visualization results for differential gene expression experiments. Our R Shiny app provides a user-friendly and interactive interface for first-time users, while our markdown pipeline provides rapid, malleable analysis for more experienced users. The Integrative Markdown Pipeline not only executes parallel runs of mRNA and small RNA data analysis for the same experimental design, but also produces integrated tables and plots for the analysis of small RNA and mRNA target combinations. 
+# RNA-integrate (RNA-i)
 
-The quick start guides below illustrate our basic execution process for each version of the pipeline. 
+RNA-i performs differential small RNA and mRNA expression analysis using DESeq2 and integrated the results to identify small RNA-mRNA target relationships. The application can be run as an R script or as a R Shiny app. The Shiny app provides a user-friendly and interactive interface for first-time users, while the markdown provides a rapid and highly configurable workflow for more experienced users. Counts tables and a file with information on small RNA-mRNA target pairs are input and integrate differential gene expresion tables plots are output. 
+
+The workflow can be run individually for mRNA or small RNA data analysis or in the integrative mode. The quick start guides below illustrate our basic execution process for each version of the workflow. 
 
 ## Shiny App Pipeline
 
@@ -39,5 +41,5 @@ See the [Integrative Pipeline Directory](Integrative_Pipeline/) for more details
 
 ## Authors
 
-* **Dr. Taiowa Montgomery** - 05/2021-present - Colorado State University - [taimontgomery](https://github.com/taimontgomery)
+* **Taiowa Montgomery** - 05/2021-present - Colorado State University - [taimontgomery](https://github.com/taimontgomery)
 * **Spencer Kuhn** - 06/2021-present - Colorado State University - [smcguirekuhn](https://github.com/smcguirekuhn)
