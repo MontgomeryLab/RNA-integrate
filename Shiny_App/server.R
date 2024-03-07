@@ -474,7 +474,7 @@ server = function(input,output) {
       
       if (input$ma_render) {
         for (i in 1:length(rv$combinations[1,])){
-          incProgress(0.10/length(combinations[1,]),message = "saving ma plots")
+          incProgress(0.10/length(rv$combinations[1,]),message = "saving ma plots")
           pdf(
             paste0(
               format(Sys.Date(),format = "%d_%m_%y_"),input$experiment_id,"_output/",

@@ -129,6 +129,11 @@ rm(params)
 ```
 
 ```{r small_rna,include=FALSE}
+# Install (if Necessary) and Load rmarkdown Package
+if (require(rmarkdown) == FALSE) {
+  install.packages("rmarkdown")
+}
+library(rmarkdown)
 
 # Execute Small RNA Pipeline
 rmarkdown::render("Montgomery_DESeq2_Pipeline.Rmd",output_file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),small_rna_params$experiment_id,".html"),params = small_rna_params)

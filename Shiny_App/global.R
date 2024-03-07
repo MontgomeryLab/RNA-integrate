@@ -39,6 +39,6 @@ library(heatmaply)
 library(ggplot2)
 
 # Source All Functions
-for (i in list.files(path = "./R",full.names = TRUE)) {
+for (i in list.files(path = "\\.R$",full.names = TRUE)) {
   source(i)
 }
