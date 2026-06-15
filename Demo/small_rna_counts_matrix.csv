@@ -1,4 +1,4 @@
-"Feature.ID","Feature.Name","Feature.Class","wt_rep_1","wt_rep_2","piwi_rep_1","piwi_rep_2"
+"Feature.ID","Feature.Name","Classifier","wt_rep_1","wt_rep_2","piwi_rep_1","piwi_rep_2"
 "Gene:WBGene00000001","Y110A7A.10, aap-1","unk",928.25,959.5,222,314
 "Gene:WBGene00000002","F27C8.1, aat-1","unk",1,0,0,0.12
 "Gene:WBGene00000003","F07C3.7, aat-2","unk",5,5,2,0

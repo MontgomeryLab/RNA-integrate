@@ -1,8 +1,9 @@
+render_mean_reads_interactive: no
 experiment_id: small_rna_demo
 software_method: tiny_rna
 counts_matrix: small_rna_counts_matrix.csv
 metadata: demo_small_rna_metadata.csv
-gene_table_method: full_table
+gene_table_method: no_table
 gene_table: demo_gene_table.csv
 generate_results_tables: yes
 generate_pca: yes
@@ -19,4 +20,4 @@ class_parameters: demo_class_parameters.csv
 generate_ma: yes
 generate_heatmap: yes
 heatmap_type: complete
-heatmap_selected_classes: ''
+heatmap_selected_classes: ALG,CSR,WAGO

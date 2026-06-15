@@ -1,3 +1,3 @@
-Gene_ID,Public_Name,Class,Targets
-____,____,____,____
-____,____,____,____
+Gene_ID,Public_Name,Class
+gene_id_1,gene_name_1,class_1
+gene_id_2,gene_name_2,class_2
