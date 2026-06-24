@@ -1,4 +1,4 @@
-Gene_ID,Public_Name,Class,Targets,
+sRNA_ID,sRNA_Name,sRNA_Class,Target_ID,Target_Name
 WBGene00000001,aap-1,unk,WBGene00000001,
 WBGene00000002,aat-1,unk,WBGene00000002,
 WBGene00000003,aat-2,unk,WBGene00000003,

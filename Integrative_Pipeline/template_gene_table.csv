@@ -1,3 +1,4 @@
-Gene_ID,Public_Name,Class,Targets
-____,____,____,____
-____,____,____,____
+sRNA_ID,sRNA_Name,sRNA_Class,Target_ID,Target_Name
+smallrna_id_1,smallrna_name_1,class_1,target_gene_id_1,target_gene_name_1
+smallrna_id_2,smallrna_name_2,class_2,target_gene_id_2,target_gene_name_2
+smallrna_id_3,smallrna_name_3,class_3,target_gene_id_3,target_gene_name_3

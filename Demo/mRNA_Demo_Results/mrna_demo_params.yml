@@ -1,8 +1,9 @@
+render_mean_reads_interactive: no
 experiment_id: mrna_demo
 software_method: rsem
 counts_matrix: ''
 metadata: demo_mrna_metadata.csv
-gene_table_method: full_table
+gene_table_method: no_table
 gene_table: demo_gene_table.csv
 generate_results_tables: yes
 generate_pca: yes
@@ -19,4 +20,4 @@ class_parameters: demo_class_parameters.csv
 generate_ma: yes
 generate_heatmap: yes
 heatmap_type: complete
-heatmap_selected_classes: ''
+heatmap_selected_classes: ALG,CSR,WAGO

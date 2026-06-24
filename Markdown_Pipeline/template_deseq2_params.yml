@@ -1,0 +1,61 @@
+---
+# ============================================================
+# DESeq2 Report — (DESeq2_Report.Rmd)
+# ============================================================
+
+# --- Run identity ---
+# Used in output filenames; avoid spaces/special characters.
+experiment_id: "experiment_id_no_spaces"
+
+# --- Input data ---
+# Choose how counts were generated/tabulated.
+software_method: "counts_matrix | tiny_rna | rsem | htseq | salmon | kallisto"
+
+# Provide a single combined counts matrix if using counts_matrix or tiny_rna.
+# Leave blank for htseq, rsem, salmon, and kallisto, where counts are imported from metadata$counts_file.
+counts_matrix: ""
+
+# Metadata must contain:
+# counts_file, sample_name, condition, control
+# counts_file is required only for htseq/rsem/salmon/kallisto.
+# Leave counts_file blank for counts_matrix and tiny_rna.
+metadata: "path/to/metadata.csv"
+
+# --- Gene table ---
+# Controls whether you load gene annotation (names/classes).
+gene_table_method: "full_table | common_names_only | gene_class_only | no_table"
+# Gene table must contain:
+# Gene_ID, Public_Name, Class
+# Required unless gene_table_method = no_table.
+gene_table: "path/to/gene_table.csv"
+
+# --- Core outputs (tables/plots toggles) ---
+generate_results_tables: TRUE
+generate_pca: TRUE
+generate_intra_condition: TRUE
+generate_mean_reads: TRUE
+generate_ma: TRUE
+generate_heatmap: TRUE
+
+# --- Mean reads: interactive behavior ---
+save_mean_reads_interactive: FALSE
+render_mean_reads_interactive: FALSE
+
+# --- Significance & styling thresholds ---
+p_value_threshold: 0.05
+fold_change_threshold: 1.3
+lower_transparency: 0.2
+upper_transparency: 0.9
+
+# --- Class-based styling ---
+# If TRUE, points can be styled by gene class using a class parameter CSV.
+customize_by_class: TRUE
+customize_by_significance: FALSE
+class_parameters: ""  # leave blank to auto-generate class styling, or provide path
+
+# --- Heatmap configuration ---
+heatmap_type: "complete | all_classes | selected_classes"
+# Used only when heatmap_type = selected_classes
+heatmap_selected_classes: "class1 | class2"
+
+---

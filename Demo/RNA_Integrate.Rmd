@@ -1,528 +1,1935 @@
 ---
-title: "Montgomery Integrative DESeq2 Pipeline"
-author: "Dr. Taiowa Montgomery and Spencer Kuhn"
-date: "4/21/2022"
+title: "RNA-Integrate Report"
+author: ""
+date: ""
 output: html_document
 params:
-  mrna_experiment_id: "mrna_demo"
-  small_rna_experiment_id: "small_rna_demo"
-  integrative_experiment_id: "integrative_demo"
   
-  mrna_software_method: "rsem"
-  small_rna_software_method: "tiny_rna"
+  # --- Run identity ---
+  mrna_experiment_id: "mrna_experiment_id_no_spaces"
+  small_rna_experiment_id: "smallrna_experiment_id_no_spaces"
+  integrative_experiment_id: "integrative_experiment_id_no_spaces"
   
-  mrna_counts_matrix: ""
-  small_rna_counts_matrix: "small_rna_counts_matrix.csv"
+  # --- Software methods ---
+  mrna_software_method: "counts_matrix | rsem | htseq | salmon | kallisto"
+  small_rna_software_method: "counts_matrix | tiny_rna"
   
-  mrna_metadata: "demo_mrna_metadata.csv"
-  small_rna_metadata: "demo_small_rna_metadata.csv"
+  # --- Input data ---
+  mrna_counts_matrix: "path/to/mrna_counts_matrix.csv (leave blank for rsem)"
+  small_rna_counts_matrix: "path/to/smallrna_counts_matrix.csv"
+  mrna_metadata: "path/to/mrna_metadata.csv"
+  small_rna_metadata: "path/to/smallrna_metadata.csv"
   
-  mrna_gene_table_method: "full_table"
-  small_rna_gene_table_method: "full_table"
+  # --- Gene table ---
+  mrna_gene_table_method: "full_table | common_names_only | gene_class_only | no_table"
+  small_rna_gene_table_method: "full_table | common_names_only | gene_class_only | no_table"
+  gene_table: "path/to/gene_table.csv"
   
-  gene_table: "demo_gene_table.csv"
-  
+  # --- Core outputs (tables/plots toggles) ---
   generate_results_tables: TRUE
-  
+  generate_integrative_results_tables: TRUE
   generate_pca: TRUE
-  
   generate_intra_condition: TRUE
-  
   generate_mean_reads: TRUE
+  generate_ma: TRUE
+  generate_heatmap: TRUE
+  generate_statistical_analysis: TRUE
+  
+  # --- Mean reads: interactive behavior ---
   save_mean_reads_interactive: FALSE
+  
+  # --- Significance & styling thresholds ---
   p_value_threshold: 0.05
   fold_change_threshold: 1.3
   lower_transparency: 0.2
   upper_transparency: 0.9
+  
+  # --- Class-based styling ---
   customize_by_class: TRUE
   customize_by_significance: FALSE
-  mrna_class_parameters: "demo_class_parameters.csv"
-  small_rna_class_parameters: "demo_class_parameters.csv"
+  mrna_class_parameters: "path/to/mrna_class_parameters.csv"
+  small_rna_class_parameters: "path/to/smallrna_class_parameters.csv"
   
-  generate_ma: TRUE
+  # --- Heatmap configuration ---
+  heatmap_type: "complete | all_classes | selected_classes"
+  heatmap_selected_classes: "class1 | class2"
   
-  generate_heatmap: TRUE
-  heatmap_type: "all_classes"
-  heatmap_selected_classes: ""
-  
-  cross_comparisons: ""
-  
-  generate_integrative_results_tables: TRUE
-  
+  # --- Integrative analyses ---
+  cross_comparisons: "mrna_vs_smallrna | custom"
   generate_cosmic_plots: TRUE
-  
   generate_slope_plots: TRUE
-  
   slope_plot_classes: "ALG,CSR,miRNA,WAGO"
 ---
 
-```{r params1,echo=FALSE,include=FALSE,warning=FALSE}
+```{r setup,echo=FALSE,include=FALSE,warning=FALSE}
 
-# Install Knitr if Necessary
-if (require(knitr) == FALSE) {
-  install.packages("knitr")
+# ---- Required packages ----
+require_package <- function(pkg) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    stop(
+      "Missing required R package: '", pkg, "'. Please install it before knitting.",
+      call. = FALSE
+    )
+  }
 }
 
-# Import Knitr
+required_packages <- c(
+  "knitr",
+  "rmarkdown",
+  "yaml",
+  "plotly",
+  "htmlwidgets",
+  "htmltools",
+  "DT",
+  "webshot2",
+  "ggplot2",
+  "pagedown",
+  "pdftools"
+)
+
+invisible(lapply(required_packages, require_package))
+
 library(knitr)
+library(ggplot2)
+library(plotly)
 
-# Establish Small RNA Parameters
-small_rna_params = list(experiment_id = params$small_rna_experiment_id,
-                        software_method = params$small_rna_software_method,
-                        counts_matrix = params$small_rna_counts_matrix,
-                        metadata = params$small_rna_metadata,
-                        gene_table_method = params$small_rna_gene_table_method,
-                        gene_table = params$gene_table,
-                        generate_results_tables = params$generate_results_tables,
-                        generate_pca = params$generate_pca,
-                        generate_intra_condition = params$generate_intra_condition,
-                        generate_mean_reads = params$generate_mean_reads,
-                        save_mean_reads_interactive = params$save_mean_reads_interactive,
-                        p_value_threshold = params$p_value_threshold,
-                        fold_change_threshold = params$fold_change_threshold,
-                        lower_transparency = params$lower_transparency,
-                        upper_transparency = params$upper_transparency,
-                        customize_by_class = params$customize_by_class,
-                        customize_by_significance = params$customize_by_significance,
-                        class_parameters = params$small_rna_class_parameters,
-                        generate_ma = params$generate_ma,
-                        generate_heatmap = params$generate_heatmap,
-                        heatmap_type = params$heatmap_type,
-                        heatmap_selected_classes = params$heatmap_selected_classes)
 
-# Establish mRNA Parameters
-mrna_params = list(experiment_id = params$mrna_experiment_id,
-                   software_method = params$mrna_software_method,
-                   counts_matrix = params$mrna_counts_matrix,
-                   metadata = params$mrna_metadata,
-                   gene_table_method = params$mrna_gene_table_method,
-                   gene_table = params$gene_table,
-                   generate_results_tables = params$generate_results_tables,
-                   generate_pca = params$generate_pca,
-                   generate_intra_condition = params$generate_intra_condition,
-                   generate_mean_reads = params$generate_mean_reads,
-                   save_mean_reads_interactive = params$save_mean_reads_interactive,
-                   p_value_threshold = params$p_value_threshold,
-                   fold_change_threshold = params$fold_change_threshold,
-                   lower_transparency = params$lower_transparency,
-                   upper_transparency = params$upper_transparency,
-                   customize_by_class = params$customize_by_class,
-                   customize_by_significance = params$customize_by_significance,
-                   class_parameters = params$mrna_class_parameters,
-                   generate_ma = params$generate_ma,
-                   generate_heatmap = params$generate_heatmap,
-                   heatmap_type = params$heatmap_type,
-                   heatmap_selected_classes = params$heatmap_selected_classes)
+# ---- Validation helpers ----
+require_file <- function(path, label) {
+  if (is.null(path) || identical(path, "")) {
+    stop("Missing required parameter: ", label, ".", call. = FALSE)
+  }
 
-# Establish Integrative Parameters
-integrative_params = list(integrative_experiment_id = params$integrative_experiment_id,
-                          gene_table = params$gene_table,
-                          cross_comparisons = params$cross_comparisons,
-                          generate_integrative_results_tables = params$generate_integrative_results_tables,
-                          generate_cosmic_plots = params$generate_cosmic_plots,
-                          generate_slope_plots = params$generate_slope_plots,
-                          slope_plot_classes = params$slope_plot_classes)
+  if (!file.exists(path)) {
+    stop("File not found for ", label, ": ", path, call. = FALSE)
+  }
 
-# Remove Parameters
+  invisible(TRUE)
+}
+
+require_columns <- function(df, required_columns, label) {
+  missing_columns <- setdiff(required_columns, colnames(df))
+
+  if (length(missing_columns) > 0) {
+    stop(
+      label, " is missing required column(s): ",
+      paste(missing_columns, collapse = ", "),
+      "\nColumns present: ", paste(colnames(df), collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  invisible(TRUE)
+}
+
+render_subpipeline <- function(rmd_path, output_file, pipeline_params, label) {
+  if (!file.exists(rmd_path)) {
+    stop("Cannot find ", label, " Rmd at: ", rmd_path, call. = FALSE)
+  }
+
+  caller_env <- parent.frame()
+
+  tryCatch(
+    rmarkdown::render(
+      input = rmd_path,
+      output_file = output_file,
+      params = pipeline_params,
+      envir = caller_env
+    ),
+    error = function(e) {
+      stop(
+        "Failed while rendering the ", label, " pipeline.\n",
+        "Rmd: ", rmd_path, "\n",
+        "Error: ", e$message,
+        call. = FALSE
+      )
+    }
+  )
+}
+
+
+# ---- Shared parameter builder for DESeq2 sub-pipelines ----
+build_deseq2_params <- function(
+  experiment_id,
+  software_method,
+  counts_matrix,
+  metadata,
+  gene_table_method,
+  class_parameters,
+  global_params
+) {
+  list(
+    experiment_id = experiment_id,
+    software_method = software_method,
+    counts_matrix = counts_matrix,
+    metadata = metadata,
+    gene_table_method = gene_table_method,
+    gene_table = global_params$gene_table,
+    generate_results_tables = global_params$generate_results_tables,
+    generate_pca = global_params$generate_pca,
+    generate_intra_condition = global_params$generate_intra_condition,
+    generate_mean_reads = global_params$generate_mean_reads,
+    save_mean_reads_interactive = global_params$save_mean_reads_interactive,
+    p_value_threshold = global_params$p_value_threshold,
+    fold_change_threshold = global_params$fold_change_threshold,
+    lower_transparency = global_params$lower_transparency,
+    upper_transparency = global_params$upper_transparency,
+    customize_by_class = global_params$customize_by_class,
+    customize_by_significance = global_params$customize_by_significance,
+    class_parameters = class_parameters,
+    generate_ma = global_params$generate_ma,
+    generate_heatmap = global_params$generate_heatmap,
+    heatmap_type = global_params$heatmap_type,
+    heatmap_selected_classes = global_params$heatmap_selected_classes
+  )
+}
+
+
+# ---- Parameter lists ----
+small_rna_params <- build_deseq2_params(
+  experiment_id = params$small_rna_experiment_id,
+  software_method = params$small_rna_software_method,
+  counts_matrix = params$small_rna_counts_matrix,
+  metadata = params$small_rna_metadata,
+  gene_table_method = params$small_rna_gene_table_method,
+  class_parameters = params$small_rna_class_parameters,
+  global_params = params
+)
+
+mrna_params <- build_deseq2_params(
+  experiment_id = params$mrna_experiment_id,
+  software_method = params$mrna_software_method,
+  counts_matrix = params$mrna_counts_matrix,
+  metadata = params$mrna_metadata,
+  gene_table_method = params$mrna_gene_table_method,
+  class_parameters = params$mrna_class_parameters,
+  global_params = params
+)
+
+integrative_params <- list(
+  integrative_experiment_id = params$integrative_experiment_id,
+  gene_table = params$gene_table,
+  cross_comparisons = params$cross_comparisons,
+  generate_integrative_results_tables = params$generate_integrative_results_tables,
+  generate_cosmic_plots = params$generate_cosmic_plots,
+  generate_slope_plots = params$generate_slope_plots,
+  generate_statistical_analysis = params$generate_statistical_analysis,
+  slope_plot_classes = params$slope_plot_classes,
+  p_value_threshold = params$p_value_threshold,
+  fold_change_threshold = params$fold_change_threshold
+)
+
+
+# ---- Input validation ----
+require_file(small_rna_params$counts_matrix, "small_rna_counts_matrix")
+require_file(small_rna_params$metadata, "small_rna_metadata")
+
+if (isTRUE(params$customize_by_class) && !identical(small_rna_params$class_parameters, "")) {
+  require_file(small_rna_params$class_parameters, "small_rna_class_parameters")
+}
+
+require_file(mrna_params$metadata, "mrna_metadata")
+
+if (isTRUE(params$customize_by_class) && !identical(mrna_params$class_parameters, "")) {
+  require_file(mrna_params$class_parameters, "mrna_class_parameters")
+}
+
+if (identical(mrna_params$software_method, "counts_matrix")) {
+  require_file(mrna_params$counts_matrix, "mrna_counts_matrix")
+}
+
+require_file(integrative_params$gene_table, "gene_table")
+
+
+# ---- Cleanup ----
 rm(params)
 
 ```
 
 ```{r small_rna,include=FALSE}
-# Install (if Necessary) and Load rmarkdown Package
-if (require(rmarkdown) == FALSE) {
-  install.packages("rmarkdown")
-}
-library(rmarkdown)
 
-# Execute Small RNA Pipeline
-rmarkdown::render("Montgomery_DESeq2_Pipeline.Rmd",output_file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),small_rna_params$experiment_id,".html"),params = small_rna_params)
+# ---- Render small RNA DESeq2 pipeline ----
+render_subpipeline(
+  rmd_path = "DESeq2_Report.Rmd",
+  output_file = paste0(
+    format(Sys.Date(), "%d_%m_%y_"),
+    small_rna_params$experiment_id,
+    ".html"
+  ),
+  pipeline_params = small_rna_params,
+  label = "small RNA"
+)
 
-# Remove Parameters
-rm(params)
 
-# Store Objects for Integrative Analysis
-small_rna_dds = dds
-small_rna_cts = cts
-small_rna_cts_names = cts_names
-small_rna_common_names = common_names
-small_rna_class_names = class_names
-small_rna_res = res
-small_rna_combinations = combinations
-colnames(small_rna_combinations) = paste0(small_rna_combinations[2,],"_vs_",small_rna_combinations[1,])
+# ---- Store small RNA objects for integrative analysis ----
+small_rna_dds <- dds
+small_rna_cts <- cts
+small_rna_cts_names <- cts_names
+small_rna_common_names <- common_names
+small_rna_class_names <- class_names
+small_rna_res <- res
+small_rna_combinations <- combinations
+
+colnames(small_rna_combinations) <- paste0(
+  small_rna_combinations[2, ],
+  "_vs_",
+  small_rna_combinations[1, ]
+)
 
 ```
 
 ```{r mrna,include=FALSE}
 
-# Execute mRNA Pipeline
-rmarkdown::render("Montgomery_DESeq2_Pipeline.Rmd",output_file = paste0(format(Sys.Date(),format = "%d_%m_%y_"),mrna_params$experiment_id,".html"),params = mrna_params)
+# ---- Render mRNA DESeq2 pipeline ----
+render_subpipeline(
+  rmd_path = "DESeq2_Report.Rmd",
+  output_file = paste0(
+    format(Sys.Date(), "%d_%m_%y_"),
+    mrna_params$experiment_id,
+    ".html"
+  ),
+  pipeline_params = mrna_params,
+  label = "mRNA"
+)
 
-# Remove Parameters
-rm(params)
 
-# Store Objects for Integrative Analysis
-mrna_dds = dds
-mrna_cts = cts
-mrna_cts_names = cts_names
-mrna_common_names = common_names
-mrna_class_names = class_names
-mrna_res = res
-mrna_combinations = combinations
-colnames(mrna_combinations) = paste0(mrna_combinations[2,],"_vs_",mrna_combinations[1,])
+# ---- Store mRNA objects for integrative analysis ----
+mrna_dds <- dds
+mrna_cts <- cts
+mrna_cts_names <- cts_names
+mrna_common_names <- common_names
+mrna_res <- res
+mrna_combinations <- combinations
+
+colnames(mrna_combinations) <- paste0(
+  mrna_combinations[2, ],
+  "_vs_",
+  mrna_combinations[1, ]
+)
 
 ```
 
 ```{r integrative-setup,include=FALSE}
 
-# Install (if Necessary) and Load Plotly Package
-if (require(plotly) == FALSE) {
-  install.packages("plotly")
+# ---- Run timestamp for output naming ----
+run_stamp <- format(Sys.time(), "%Y-%m-%d_%H-%M-%S_")
+
+# ---- Create output directory ----
+out_dir <- file.path(
+  getwd(),
+  paste0(run_stamp, integrative_params$integrative_experiment_id, "_output")
+)
+
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+
+# ---- Save integrative parameter record ----
+yaml::write_yaml(
+  integrative_params,
+  file.path(
+    out_dir,
+    paste0(
+      integrative_params$integrative_experiment_id, "_",
+      run_stamp,
+      "params.yml"
+    )
+  )
+)
+
+
+# ---- Import gene table ----
+gene_table <- read.csv(
+  integrative_params$gene_table,
+  stringsAsFactors = FALSE
+)
+
+
+# ---- Validate gene table ----
+if (nrow(gene_table) == 0) {
+  stop("gene_table contains 0 rows.", call. = FALSE)
 }
-library(plotly)
 
-# Create Output Directory
-dir.create(paste0(getwd(),"/",format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_output/"))
+require_columns(
+  gene_table,
+  c("sRNA_ID", "sRNA_Name", "sRNA_Class", "Target_ID"),
+  "gene_table"
+)
 
-# Save YAML Parameters
-yaml::write_yaml(integrative_params,paste0(format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_output/",
-                                           integrative_params$integrative_experiment_id,"_",format(Sys.Date(),format = "%d_%m_%y_"),"params.yml"))
+# ---- Add optional Target_Name column if missing ----
+if (!"Target_Name" %in% colnames(gene_table)) {
+  gene_table$Target_Name <- gene_table$Target_ID
+}
 
-# Import Gene Table
-gene_table = read.csv(integrative_params$gene_table)
+# ---- Fill blank Target_Name values ----
+gene_table$Target_Name[
+  is.na(gene_table$Target_Name) |
+    gene_table$Target_Name == ""
+] <- gene_table$Target_ID[
+  is.na(gene_table$Target_Name) |
+    gene_table$Target_Name == ""
+]
 
-# Generate Matrix of Small RNA and mRNA Target Combinations
-target_matrix = NULL
-for (i in 1:length(gene_table[,1])) {
-  if (gene_table[i,1] %in% names(small_rna_cts_names)) {
-    for (j in strsplit(gene_table[i,4],",")[[1]]) {
-      if (j %in% names(mrna_cts_names)) {
-        target_matrix = rbind(target_matrix,c(gene_table[i,1],j))
-      }
+
+# ---- Keep only valid small RNA–mRNA target pairs ----
+target_pairs <- gene_table[
+  gene_table$sRNA_ID %in% names(small_rna_cts_names) &
+    gene_table$Target_ID %in% names(mrna_cts_names),
+  c("sRNA_ID", "sRNA_Name", "sRNA_Class", "Target_ID", "Target_Name")
+]
+
+
+# ---- Validate filtered target pairs ----
+if (nrow(target_pairs) == 0) {
+  stop(
+    "No valid small RNA–mRNA target pairs were found.\n",
+    "Common causes:\n",
+    "gene_table sRNA_ID values do not match names(small_rna_cts_names)\n",
+    "gene_table Target_ID values do not match names(mrna_cts_names)",
+    call. = FALSE
+  )
+}
+
+
+cosmic_plot <- function(target_data, comparison_name) {
+
+  # ---- Significance thresholds ----
+  p_threshold <- integrative_params$p_value_threshold
+  fc_threshold <- integrative_params$fold_change_threshold
+  log2_fc_threshold <- log2(fc_threshold)
+
+  # ---- Labels for legend text and hover text ----
+  sig_srna_label <- paste0(
+    "sRNA: padj < ", p_threshold,
+    " & |log2FC| > ", round(log2_fc_threshold, 3)
+  )
+
+  sig_mrna_label <- paste0(
+    "mRNA: padj < ", p_threshold,
+    " & |log2FC| > ", round(log2_fc_threshold, 3)
+  )
+
+  nonsig_srna_label <- "sRNA: not significant"
+  nonsig_mrna_label <- "mRNA: not significant"
+
+  hover_sig_sig <- paste0(
+    "<b>",
+    sig_srna_label,
+    "<br>",
+    sig_mrna_label,
+    "</b><br>"
+  )
+
+  hover_sig_nonsig <- paste0(
+    "<b>",
+    sig_srna_label,
+    "<br>",
+    nonsig_mrna_label,
+    "</b><br>"
+  )
+
+  hover_nonsig_sig <- paste0(
+    "<b>",
+    nonsig_srna_label,
+    "<br>",
+    sig_mrna_label,
+    "</b><br>"
+  )
+
+  hover_nonsig_nonsig <- paste0(
+    "<b>",
+    nonsig_srna_label,
+    "<br>",
+    nonsig_mrna_label,
+    "</b><br>"
+  )
+
+  # ---- Significance flags ----
+  srna_significant <- (target_data$small_rna_p_value < p_threshold) &
+    (abs(target_data$small_rna_fold_change) > log2_fc_threshold)
+
+  mrna_significant <- (target_data$mrna_p_value < p_threshold) &
+    (abs(target_data$mrna_fold_change) > log2_fc_threshold)
+
+  # ---- Shared small RNA color scale ----
+  target_data$srna_color_val <- log2(target_data$small_rna_mean)
+
+  color_min <- min(target_data$srna_color_val, na.rm = TRUE)
+  color_max <- max(target_data$srna_color_val, na.rm = TRUE)
+
+  # ---- Subset data into four significance groups ----
+  data_sig_sig <- target_data[srna_significant & mrna_significant, ]
+  data_sig_nonsig <- target_data[srna_significant & !mrna_significant, ]
+  data_nonsig_sig <- target_data[!srna_significant & mrna_significant, ]
+  data_nonsig_nonsig <- target_data[!srna_significant & !mrna_significant, ]
+
+  # ---- Values used for point-size legend ----
+  size_vals <- c(
+    data_sig_sig$mrna_log2_mean,
+    data_nonsig_sig$mrna_log2_mean
+  )
+
+  size_vals <- size_vals[is.finite(size_vals)]
+
+  if (length(size_vals) == 0) {
+    legend_vals <- c(0, 0, 0, 0)
+  } else {
+    legend_vals <- seq(
+      min(size_vals, na.rm = TRUE),
+      max(size_vals, na.rm = TRUE),
+      length.out = 4
+    )
+  }
+
+  # ---- Point-size legend geometry ----
+  x_positions <- c(1.05, 1.13, 1.21, 1.29)
+  x_radii <- c(0.0015, 0.0024, 0.0033, 0.0042)
+  y_radii <- c(0.0020, 0.0033, 0.0046, 0.0059)
+
+  # ---- Quadrant dot counts ----
+  count_quad <- function(df, x_pos, y_pos) {
+    x_ok <- if (x_pos) {
+      df$small_rna_fold_change > 0
+    } else {
+      df$small_rna_fold_change <= 0
     }
+
+    y_ok <- if (y_pos) {
+      df$mrna_fold_change > 0
+    } else {
+      df$mrna_fold_change <= 0
+    }
+
+    sum(x_ok & y_ok, na.rm = TRUE)
   }
+
+  quad_label <- function(x_pos, y_pos) {
+    paste0(
+      "<span style='color:#E65396'>&#9679;</span> ",
+      count_quad(data_sig_sig, x_pos, y_pos),
+      "<br>",
+      "<span style='color:#2171B5'>&#9679;</span> ",
+      count_quad(data_sig_nonsig, x_pos, y_pos),
+      "<br>",
+      "<span style='color:#E69F00'>&#9679;</span> ",
+      count_quad(data_nonsig_sig, x_pos, y_pos),
+      "<br>",
+      "<span style='color:#808080'>&#9679;</span> ",
+      count_quad(data_nonsig_nonsig, x_pos, y_pos)
+    )
+  }
+
+  plot_object <- plot_ly(width = 1400, height = 850) %>%
+
+    add_trace(
+      data = data_sig_sig,
+      type = "scatter",
+      mode = "markers",
+      x = ~small_rna_fold_change,
+      y = ~mrna_fold_change,
+      size = ~mrna_log2_mean,
+      sizes = c(4, 50),
+      marker = list(
+        color = ~srna_color_val,
+        cmin = color_min,
+        cmax = color_max,
+        colorscale = list(
+          list(0.0, "#F6D6E6"),
+          list(0.11, "#F2B6D2"),
+          list(0.22, "#EE95BE"),
+          list(0.33, "#EA74AA"),
+          list(0.44, "#E65396"),
+          list(0.56, "#D74286"),
+          list(0.67, "#C83276"),
+          list(0.78, "#B82266"),
+          list(0.89, "#A81256"),
+          list(1.0, "#8F0046")
+        ),
+        showscale = TRUE,
+        colorbar = list(
+          title = list(text = "sRNA log2 mean", side = "top"),
+          orientation = "h",
+          x = 1.02,
+          xanchor = "left",
+          y = 0.80,
+          yanchor = "top",
+          len = 0.28,
+          thickness = 15
+        ),
+        line = list(width = 0)
+      ),
+      opacity = 1.0,
+      text = ~paste0(
+        hover_sig_sig,
+        "<br>sRNA: ", small_rna,
+        "<br>sRNA class: ", small_rna_class,
+        "<br><br>mRNA: ", mrna,
+        "<br>mRNA target ID: ", mrna_target
+      ),
+      hoverinfo = "text",
+      customdata = paste(data_sig_sig$small_rna, data_sig_sig$mrna, sep = "|||"),
+      name = "sig sRNA, sig mRNA",
+      showlegend = TRUE
+    ) %>%
+
+    add_trace(
+      data = data_sig_nonsig,
+      type = "scatter",
+      mode = "markers",
+      x = ~small_rna_fold_change,
+      y = ~mrna_fold_change,
+      size = I(4),
+      marker = list(
+        color = ~srna_color_val,
+        cmin = color_min,
+        cmax = color_max,
+        colorscale = list(
+          list(0.0, "#C6DBEF"),
+          list(0.11, "#9ECAE1"),
+          list(0.22, "#6BAED6"),
+          list(0.33, "#4292C6"),
+          list(0.44, "#2171B5"),
+          list(0.56, "#08519C"),
+          list(0.67, "#08306B"),
+          list(0.78, "#041b3c"),
+          list(0.89, "#000000"),
+          list(1.0, "#000000")
+        ),
+        showscale = TRUE,
+        colorbar = list(
+          title = list(text = "sRNA log2 mean", side = "top"),
+          orientation = "h",
+          x = 1.02,
+          xanchor = "left",
+          y = 0.58,
+          yanchor = "top",
+          len = 0.28,
+          thickness = 15
+        ),
+        line = list(width = 0)
+      ),
+      opacity = 0.6,
+      text = ~paste0(
+        hover_sig_nonsig,
+        "<br>sRNA: ", small_rna,
+        "<br>sRNA class: ", small_rna_class,
+        "<br><br>mRNA: ", mrna,
+        "<br>mRNA target ID: ", mrna_target
+      ),
+      hoverinfo = "text",
+      customdata = paste(data_sig_nonsig$small_rna, data_sig_nonsig$mrna, sep = "|||"),
+      name = "sig sRNA, nonsig mRNA",
+      showlegend = TRUE
+    ) %>%
+
+    add_trace(
+      data = data_nonsig_sig,
+      type = "scatter",
+      mode = "markers",
+      x = ~small_rna_fold_change,
+      y = ~mrna_fold_change,
+      size = ~mrna_log2_mean,
+      sizes = c(4, 50),
+      marker = list(
+        color = "#E69F00",
+        line = list(width = 0)
+      ),
+      opacity = 0.4,
+      text = ~paste0(
+        hover_nonsig_sig,
+        "<br>sRNA: ", small_rna,
+        "<br>sRNA class: ", small_rna_class,
+        "<br><br>mRNA: ", mrna,
+        "<br>mRNA target ID: ", mrna_target
+      ),
+      hoverinfo = "text",
+      customdata = paste(data_nonsig_sig$small_rna, data_nonsig_sig$mrna, sep = "|||"),
+      name = "nonsig sRNA, sig mRNA",
+      showlegend = TRUE
+    ) %>%
+
+    add_trace(
+      data = data_nonsig_nonsig,
+      type = "scatter",
+      mode = "markers",
+      x = ~small_rna_fold_change,
+      y = ~mrna_fold_change,
+      size = I(4),
+      marker = list(
+        color = "#808080",
+        line = list(width = 0)
+      ),
+      opacity = 0.3,
+      text = ~paste0(
+        hover_nonsig_nonsig,
+        "<br>sRNA: ", small_rna,
+        "<br>sRNA class: ", small_rna_class,
+        "<br><br>mRNA: ", mrna,
+        "<br>mRNA target ID: ", mrna_target
+      ),
+      hoverinfo = "text",
+      customdata = paste(data_nonsig_nonsig$small_rna, data_nonsig_nonsig$mrna, sep = "|||"),
+      name = "nonsig sRNA, nonsig mRNA",
+      showlegend = TRUE
+    ) %>%
+
+    layout(
+      title = list(
+        text = paste0("<b>", comparison_name, "</b>"),
+        font = list(size = 24),
+        xref = "paper",
+        x = 0,
+        xanchor = "left"
+      ),
+      xaxis = list(
+        title = "sRNA log2 fold change",
+        titlefont = list(size = 20),
+        tickfont = list(size = 16)
+      ),
+      yaxis = list(
+        title = "mRNA log2 fold change",
+        titlefont = list(size = 20),
+        tickfont = list(size = 16)
+      ),
+      margin = list(t = 100, r = 420, l = 90, b = 130),
+      showlegend = TRUE,
+      legend = list(
+        title = list(text = "<b>Select Data to Display</b>"),
+        x = 1.01,
+        xanchor = "left",
+        y = 1.0,
+        yanchor = "top",
+        itemsizing = "constant"
+      ),
+      annotations = list(
+        list(
+          text = quad_label(TRUE, TRUE),
+          xref = "paper",
+          yref = "paper",
+          x = 0.98,
+          y = 0.98,
+          xanchor = "right",
+          yanchor = "top",
+          align = "right",
+          showarrow = FALSE,
+          font = list(size = 12),
+          bgcolor = "rgba(255,255,255,0.7)"
+        ),
+        list(
+          text = quad_label(FALSE, TRUE),
+          xref = "paper",
+          yref = "paper",
+          x = 0.02,
+          y = 0.98,
+          xanchor = "left",
+          yanchor = "top",
+          align = "left",
+          showarrow = FALSE,
+          font = list(size = 12),
+          bgcolor = "rgba(255,255,255,0.7)"
+        ),
+        list(
+          text = quad_label(FALSE, FALSE),
+          xref = "paper",
+          yref = "paper",
+          x = 0.02,
+          y = 0.02,
+          xanchor = "left",
+          yanchor = "bottom",
+          align = "left",
+          showarrow = FALSE,
+          font = list(size = 12),
+          bgcolor = "rgba(255,255,255,0.7)"
+        ),
+        list(
+          text = quad_label(TRUE, FALSE),
+          xref = "paper",
+          yref = "paper",
+          x = 0.98,
+          y = 0.02,
+          xanchor = "right",
+          yanchor = "bottom",
+          align = "right",
+          showarrow = FALSE,
+          font = list(size = 12),
+          bgcolor = "rgba(255,255,255,0.7)"
+        ),
+        list(
+          text = paste0(
+            "sRNA: padj &lt; ", p_threshold,
+            " &amp; |log2FC| &gt; ", round(log2_fc_threshold, 3),
+            "<br>mRNA: padj &lt; ", p_threshold,
+            " &amp; |log2FC| &gt; ", round(log2_fc_threshold, 3)
+          ),
+          xref = "paper",
+          yref = "paper",
+          x = 1.03,
+          y = 0.69,
+          xanchor = "left",
+          yanchor = "top",
+          align = "left",
+          showarrow = FALSE,
+          font = list(size = 12, color = "#444444")
+        ),
+        list(
+          text = paste0(
+            "sRNA: padj &lt; ", p_threshold,
+            " &amp; |log2FC| &gt; ", round(log2_fc_threshold, 3),
+            "<br>mRNA: not significant"
+          ),
+          xref = "paper",
+          yref = "paper",
+          x = 1.03,
+          y = 0.47,
+          xanchor = "left",
+          yanchor = "top",
+          align = "left",
+          showarrow = FALSE,
+          font = list(size = 12, color = "#444444")
+        ),
+        list(
+          text = paste0(
+            "sRNA: not significant",
+            "<br>mRNA: padj &lt; ", p_threshold,
+            " &amp; |log2FC| &gt; ", round(log2_fc_threshold, 3)
+          ),
+          xref = "paper",
+          yref = "paper",
+          x = 1.08,
+          y = 0.325,
+          xanchor = "left",
+          yanchor = "middle",
+          align = "left",
+          showarrow = FALSE,
+          font = list(size = 12, color = "#444444")
+        ),
+        list(
+          text = "sRNA: not significant<br>mRNA: not significant",
+          xref = "paper",
+          yref = "paper",
+          x = 1.08,
+          y = 0.225,
+          xanchor = "left",
+          yanchor = "middle",
+          align = "left",
+          showarrow = FALSE,
+          font = list(size = 12, color = "#444444")
+        ),
+        list(
+          text = "<b>point size</b>: mRNA log2 mean<br>(for significant mRNA genes)",
+          xref = "paper",
+          yref = "paper",
+          x = 1.03,
+          y = 0.14,
+          xanchor = "left",
+          yanchor = "top",
+          align = "left",
+          showarrow = FALSE,
+          font = list(size = 13, color = "#444444")
+        ),
+        list(
+          text = format(round(legend_vals[1], 1), big.mark = ","),
+          xref = "paper",
+          yref = "paper",
+          x = x_positions[1],
+          y = 0.015,
+          xanchor = "center",
+          showarrow = FALSE,
+          font = list(size = 11, color = "#444444")
+        ),
+        list(
+          text = format(round(legend_vals[2], 1), big.mark = ","),
+          xref = "paper",
+          yref = "paper",
+          x = x_positions[2],
+          y = 0.015,
+          xanchor = "center",
+          showarrow = FALSE,
+          font = list(size = 11, color = "#444444")
+        ),
+        list(
+          text = format(round(legend_vals[3], 1), big.mark = ","),
+          xref = "paper",
+          yref = "paper",
+          x = x_positions[3],
+          y = 0.015,
+          xanchor = "center",
+          showarrow = FALSE,
+          font = list(size = 11, color = "#444444")
+        ),
+        list(
+          text = format(round(legend_vals[4], 1), big.mark = ","),
+          xref = "paper",
+          yref = "paper",
+          x = x_positions[4],
+          y = 0.015,
+          xanchor = "center",
+          showarrow = FALSE,
+          font = list(size = 11, color = "#444444")
+        )
+      ),
+      shapes = list(
+        list(
+          type = "circle",
+          xref = "paper",
+          yref = "paper",
+          x0 = x_positions[1] - x_radii[1],
+          x1 = x_positions[1] + x_radii[1],
+          y0 = 0.065 - y_radii[1],
+          y1 = 0.065 + y_radii[1],
+          line = list(color = "black", width = 0.6),
+          fillcolor = "rgba(0,0,0,0)"
+        ),
+        list(
+          type = "circle",
+          xref = "paper",
+          yref = "paper",
+          x0 = x_positions[2] - x_radii[2],
+          x1 = x_positions[2] + x_radii[2],
+          y0 = 0.065 - y_radii[2],
+          y1 = 0.065 + y_radii[2],
+          line = list(color = "black", width = 0.6),
+          fillcolor = "rgba(0,0,0,0)"
+        ),
+        list(
+          type = "circle",
+          xref = "paper",
+          yref = "paper",
+          x0 = x_positions[3] - x_radii[3],
+          x1 = x_positions[3] + x_radii[3],
+          y0 = 0.065 - y_radii[3],
+          y1 = 0.065 + y_radii[3],
+          line = list(color = "black", width = 0.6),
+          fillcolor = "rgba(0,0,0,0)"
+        ),
+        list(
+          type = "circle",
+          xref = "paper",
+          yref = "paper",
+          x0 = x_positions[4] - x_radii[4],
+          x1 = x_positions[4] + x_radii[4],
+          y0 = 0.065 - y_radii[4],
+          y1 = 0.065 + y_radii[4],
+          line = list(color = "black", width = 0.6),
+          fillcolor = "rgba(0,0,0,0)"
+        ),
+        list(
+          type = "rect",
+          xref = "paper",
+          yref = "paper",
+          x0 = 1.03,
+          x1 = 1.062,
+          y0 = 0.3125,
+          y1 = 0.3375,
+          line = list(color = "#444444", width = 0.85),
+          fillcolor = "#F7DFA4"
+        ),
+        list(
+          type = "rect",
+          xref = "paper",
+          yref = "paper",
+          x0 = 1.03,
+          x1 = 1.062,
+          y0 = 0.2125,
+          y1 = 0.2375,
+          line = list(color = "#444444", width = 0.85),
+          fillcolor = "#D6D6D6"
+        )
+      )
+    )
+
+  return(plot_object)
 }
 
-# Cosmic Plot Function
-cosmic_plot = function(target_data,comparison_name) {
-  
-  # Produce Target Data Subsets
-  target_data_s_sig_m_insig = subset(target_data,target_data$small_rna_p_value < 0.05 & target_data$mrna_p_value > 0.05)
-  target_data_s_sig_m_sig = subset(target_data,target_data$small_rna_p_value < 0.05 & target_data$mrna_p_value < 0.05)
-  target_data_s_insig_m_insig = subset(target_data,target_data$small_rna_p_value > 0.05 & target_data$mrna_p_value > 0.05)
-  target_data_s_insig_m_sig = subset(target_data,target_data$small_rna_p_value > 0.05 & target_data$mrna_p_value < 0.05)
-  
-  # Plotly Call
-  cosmic_plot = plot_ly(width = 1250,height = 850) %>% 
-    
-    # Plot Points Significant for Both Small RNA and mRNA
-    add_trace(data = target_data_s_sig_m_sig,type = "scatter",mode = "markers",
-              x = ~small_rna_fold_change,y = ~mrna_fold_change,
-              size = ~mrna_mean,sizes = c(5,500),
-              color = ~log2(small_rna_mean),
-              opacity = 1.0,
-              marker = list(line = list(color = "#808080",width = 1)),
-              colors = c("#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5",
-                         "#08519C","#08306B","#041b3c","#000000"),
-              text = ~paste0("<b>small rna p < 0.05<br>mrna p < 0.05</b><br>",
-                             "<br>small rna: ",small_rna_cts_names[small_rna],
-                             "<br>small rna class: ",small_rna_class,"<br>",
-                             "<br>mrna target: ",mrna_cts_names[mrna_target],
-                             "<br>mrna class: ",mrna_class),
-              hoverinfo = "text",
-              name = "small rna p < 0.05<br>mrna p < 0.05") %>% 
-    
-    # Plot Points Significant for Small RNA, Insignificant for mRNA
-    add_trace(data = target_data_s_sig_m_insig,type = "scatter",mode = "markers",
-              x = ~small_rna_fold_change,y = ~mrna_fold_change,
-              size = I(3),
-              color = ~log2(small_rna_mean),
-              opacity = 0.6,
-              colors = c("#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5",
-                         "#08519C","#08306B","#041b3c","#000000"),
-              text = ~paste0("<b>small rna p < 0.05<br>mrna p > 0.05</b><br>",
-                             "<br>small rna: ",small_rna_cts_names[small_rna],
-                             "<br>small rna class: ",small_rna_class,"<br>",
-                             "<br>mrna target: ",mrna_cts_names[mrna_target],
-                             "<br>mrna class: ",mrna_class),
-              hoverinfo = "text",
-              name = "small rna p < 0.05<br>mrna p > 0.05") %>% 
-    
-    # Plot Points Insignificant for Small RNA, Significant for mRNA
-    add_trace(data = target_data_s_insig_m_sig,type = "scatter",mode = "markers",
-              x = ~small_rna_fold_change,y = ~mrna_fold_change,
-              size = ~mrna_mean,sizes = c(5,500),
-              color = I("#808080"),
-              marker = list(line = list(color = "#000000",width = 1)),
-              opacity = 0.2,
-              text = ~paste0("<b>small rna p > 0.05<br>mrna p < 0.05</b><br>",
-                             "<br>small rna: ",small_rna_cts_names[small_rna],
-                             "<br>small rna class: ",small_rna_class,"<br>",
-                             "<br>mrna target: ",mrna_cts_names[mrna_target],
-                             "<br>mrna class: ",mrna_class),
-              hoverinfo = "text",
-              name = "small rna p > 0.05<br>mrna p < 0.05") %>% 
-    
-    # Plot Points Insignificant for Both Small RNA and mRNA
-    add_trace(data = target_data_s_insig_m_insig,type = "scatter",mode = "markers",
-              x = ~small_rna_fold_change,y = ~mrna_fold_change,
-              size = I(3),
-              color = I("#808080"),
-              opacity = 0.2,
-              text = ~paste0("<b>small rna p > 0.05<br>mrna p > 0.05</b><br>",
-                             "<br>small rna: ",small_rna_cts_names[small_rna],
-                             "<br>small rna class: ",small_rna_class,"<br>",
-                             "<br>mrna target: ",mrna_cts_names[mrna_target],
-                             "<br>mrna class: ",mrna_class),
-              hoverinfo = "text",
-              name = "small rna p > 0.05<br>mrna p > 0.05") %>%
-    
-    # Specify Plot Layout, Legend, and Annotations
-    layout(title = list(text = paste0("<b>",comparison_name,"</b>"),font = list(size = 24),
-                        xref = "paper",x = 0,xanchor = "left"),
-           xaxis = list(title = "small rna log2 fold change"),
-           yaxis = list(title = "mrna log2 fold change"),
-           margin = list(t = 100),
-           legend = list(title = list(text = "<b>statistical significance</b>"),y = 1),
-           annotations = list(text = "<b>point size</b>: mrna mean<br>(for significant mrna genes)",
-                              font = list(size = 14),
-                              align = "left",
-                              xref = "paper",x = 1.02,xanchor = "left",yref = "paper",y=0.75,
-                              showarrow = FALSE)) %>% 
-    
-    # Specify Colorbar Layout
-    colorbar(title = "<b>color</b>: small rna log2 mean<br>(for significant small rna genes)<br> <br>",
-             x = 1.02,xpad = 0,xanchor = "left",y=0.7)
-  
-  # Object Return
-  return(cosmic_plot)
+
+slope_plot <- function(target_data, comparison_name, slope_plot_classes) {
+
+  # ---- Significance threshold (padj only for slope plot) ----
+  p_thresh <- integrative_params$p_value_threshold
+
+  # ---- 4-group significance colors (matching scatter plot) ----
+  sig_groups <- list(
+    list(
+      label = "sig sRNA, sig mRNA",
+      color = "#E65396",
+      srna_sig = TRUE,
+      mrna_sig = TRUE
+    ),
+    list(
+      label = "sig sRNA, nonsig mRNA",
+      color = "#2171B5",
+      srna_sig = TRUE,
+      mrna_sig = FALSE
+    ),
+    list(
+      label = "nonsig sRNA, sig mRNA",
+      color = "#E69F00",
+      srna_sig = FALSE,
+      mrna_sig = TRUE
+    ),
+    list(
+      label = "nonsig sRNA, nonsig mRNA",
+      color = "#808080",
+      srna_sig = FALSE,
+      mrna_sig = FALSE
+    )
+  )
+
+  # ---- Build per-pair data (one row per sRNA-mRNA pair) ----
+  pair_data <- data.frame(
+    index = seq_len(nrow(target_data)),
+    class = target_data$small_rna_class,
+    srna_id = target_data$small_rna,
+    mrna_id = target_data$mrna,
+    srna_fc = as.numeric(target_data$small_rna_fold_change),
+    mrna_fc = as.numeric(target_data$mrna_fold_change),
+    srna_mean = as.numeric(target_data$small_rna_mean),
+    mrna_mean = as.numeric(target_data$mrna_mean),
+    srna_padj = as.numeric(target_data$small_rna_p_value),
+    mrna_padj = as.numeric(target_data$mrna_p_value),
+    stringsAsFactors = FALSE
+  )
+
+  # ---- Assign significance group (padj only) ----
+  srna_sig <- !is.na(pair_data$srna_padj) &
+    pair_data$srna_padj < p_thresh
+
+  mrna_sig <- !is.na(pair_data$mrna_padj) &
+    pair_data$mrna_padj < p_thresh
+
+  pair_data$sig_group <- ifelse(
+    srna_sig & mrna_sig,
+    "sig sRNA, sig mRNA",
+    ifelse(
+      srna_sig & !mrna_sig,
+      "sig sRNA, nonsig mRNA",
+      ifelse(
+        !srna_sig & mrna_sig,
+        "nonsig sRNA, sig mRNA",
+        "nonsig sRNA, nonsig mRNA"
+      )
+    )
+  )
+
+  # ---- Keep only requested classes ----
+  pair_data <- pair_data[pair_data$class %in% slope_plot_classes, ]
+  slope_plot_classes <- slope_plot_classes[slope_plot_classes %in% pair_data$class]
+
+  # ---- Guard: return message if no data ----
+  if (nrow(pair_data) == 0) {
+    return(htmltools::tagList(
+      plotly::plot_ly() %>%
+        plotly::layout(
+          annotations = list(
+            list(
+              text = paste0("No data for classes: ", paste(slope_plot_classes, collapse = ", ")),
+              x = 0.5,
+              y = 0.5,
+              xref = "paper",
+              yref = "paper",
+              showarrow = FALSE,
+              font = list(size = 14, color = "#444444")
+            )
+          )
+        )
+    ))
+  }
+
+  # ---- Alpha inversely proportional to class size ----
+  calc_alpha <- function(n) pmax(0.06, 1 / (1 + (n / 100)))
+
+  # ---- Helper: rgba string from hex + alpha ----
+  to_rgba <- function(hex, alpha) {
+    rgb_vals <- as.integer(col2rgb(hex))
+    paste0("rgba(", paste(rgb_vals, collapse = ","), ",", round(alpha, 3), ")")
+  }
+
+  # ---- Build one figure per class ----
+  fig_list <- lapply(sort(slope_plot_classes), function(cls) {
+
+    cls_data <- pair_data[pair_data$class == cls, ]
+    cls_alpha <- calc_alpha(nrow(cls_data))
+
+    sig_title <- paste0(
+      "<b>", cls, "</b><br>",
+      "<sup>", comparison_name,
+      " | significance: padj &lt; ", p_thresh,
+      "</sup>"
+    )
+
+    fig <- plotly::plot_ly()
+
+    for (grp in sig_groups) {
+      grp_data <- cls_data[cls_data$sig_group == grp$label, ]
+      line_col <- to_rgba(grp$color, cls_alpha)
+
+      # ---- Build x, y, text vectors with NA separators between pairs ----
+      # Each pair contributes: "sRNA", "mRNA", NA (3 elements)
+      # This puts all lines in ONE trace -> legend always shows a colored line icon
+      if (nrow(grp_data) > 0) {
+        hover_per_pair <- paste0(
+          "sRNA: ", grp_data$srna_id,
+          "<br>mRNA: ", grp_data$mrna_id,
+          "<br>class: ", grp_data$class,
+          "<br>sRNA log2FC: ", round(grp_data$srna_fc, 3),
+          "<br>mRNA log2FC: ", round(grp_data$mrna_fc, 3),
+          "<br>sRNA mean: ", round(grp_data$srna_mean, 2),
+          "<br>mRNA mean: ", round(grp_data$mrna_mean, 2),
+          "<br>sRNA padj: ", signif(grp_data$srna_padj, 3),
+          "<br>mRNA padj: ", signif(grp_data$mrna_padj, 3)
+        )
+
+        x_vec <- rep(c("sRNA", "mRNA", NA_character_), nrow(grp_data))
+        y_vec <- as.vector(rbind(grp_data$srna_fc, grp_data$mrna_fc, rep(NA_real_, nrow(grp_data))))
+        t_vec <- as.vector(rbind(hover_per_pair, hover_per_pair, rep("", nrow(grp_data))))
+
+        cd_ids <- paste(grp_data$srna_id, grp_data$mrna_id, sep = "|||")
+        cd_vec <- as.vector(rbind(cd_ids, cd_ids, rep("", nrow(grp_data))))
+      } else {
+        # Empty group: invisible trace so legend entry still appears
+        x_vec <- c(NA_character_, NA_character_)
+        y_vec <- c(NA_real_, NA_real_)
+        t_vec <- c("", "")
+        cd_vec <- c("", "")
+      }
+
+      fig <- fig %>% plotly::add_trace(
+        type = "scatter",
+        mode = "lines",
+        x = x_vec,
+        y = y_vec,
+        text = t_vec,
+        customdata = cd_vec,
+        line = list(color = line_col, width = 1),
+        name = paste0("<span style='color:", grp$color, "'>", grp$label, "</span>"),
+        showlegend = TRUE,
+        hoverinfo = "text"
+      )
+    }
+
+    fig <- fig %>% plotly::layout(
+      title = list(text = sig_title, font = list(size = 13)),
+      xaxis = list(
+        title = "Feature Type",
+        categoryorder = "array",
+        categoryarray = c("sRNA", "mRNA"),
+        tickfont = list(size = 12)
+      ),
+      yaxis = list(
+        title = "log2 fold change",
+        tickfont = list(size = 12)
+      ),
+      legend = list(
+        title = list(text = "<b>Select Data to Display</b>"),
+        x = 1.01,
+        xanchor = "left"
+      ),
+      hovermode = "closest"
+    )
+
+    fig
+  })
+
+  # ---- Return all class figures together ----
+  htmltools::tagList(fig_list)
 }
 
-# Slope Plot Function
-slope_plot = function(target_data,comparison_name,slope_plot_classes) {
-  
-  # Build Slope Plot Data Matrix From Target Data
-  slope_plot_data = rbind(cbind(rep("small_rna",dim(target_data)[1]),1:dim(target_data)[1],as.matrix(target_data[,1:5])),
-                          cbind(rep("mrna",dim(target_data)[1]),1:dim(target_data)[1],as.matrix(target_data[,6:10])))
-  
-  # Rename Columns
-  colnames(slope_plot_data) = c("type","index","gene_id","class","mean","fold_change","p_value")
-  
-  # Convert Slope Plot Data to Data Frame
-  slope_plot_data = data.frame(slope_plot_data)
-  
-  # Isolate Data to Include Only Listed Slope Plot Classes
-  slope_plot_data = slope_plot_data[which(slope_plot_data$index %in% which(slope_plot_data$class %in% slope_plot_classes)),]
-  slope_plot_data$class = target_data$small_rna_class[as.numeric(slope_plot_data$index)]
-  
-  # Eliminate Listed Slope Plot Classes Not Present in the Data
-  slope_plot_classes = slope_plot_classes[which(slope_plot_classes %in% slope_plot_data$class)]
-  
-  # Default Colors List
-  class_colors = c("#1F78B4","#1B9E77","#E6AB02","#E7298A","#E31A1C","#6A3D9A","#A6761D","#000000",
-                   "#33A02C","#014421","#FF7F00","#8B0000","#FF9E84","#907567","#525252")
-  
-  # Assign Color Values by Iterating Through Default List
-  color_values = rep(class_colors,ceiling(length(slope_plot_classes)/length(class_colors)))[1:length(slope_plot_classes)]
-  names(color_values) = sort(slope_plot_classes)
-  
-  # Assign Transparency Values
-  alpha_values = NULL
-  for (i in sort(slope_plot_classes)) {
-    
-    # Assign Value Inversely Proportional to Number of Genes in Each Class
-    alpha_values = c(alpha_values,1/(1+(length(which(slope_plot_data$class == i))/100)))
-    
+
+integrative_statistics <- function(target_data, comparison_name) {
+
+  # ---- Keep valid numeric fold changes ----
+  base_data <- target_data[
+    is.finite(target_data$small_rna_fold_change) &
+      is.finite(target_data$mrna_fold_change),
+  ]
+
+  # ---- Keep only directional pairs ----
+  base_data <- base_data[
+    base_data$small_rna_fold_change != 0 &
+      base_data$mrna_fold_change != 0,
+  ]
+
+  # ---- Prepare data for sign test ----
+  sign_data <- base_data[
+    base_data$small_rna_p_value < integrative_params$p_value_threshold &
+      abs(base_data$small_rna_fold_change) > log2(integrative_params$fold_change_threshold) &
+      base_data$mrna_p_value < integrative_params$p_value_threshold &
+      abs(base_data$mrna_fold_change) > log2(integrative_params$fold_change_threshold),
+  ]
+
+  # ---- Sign test counts ----
+  total_pairs <- nrow(sign_data)
+
+  if (total_pairs == 0) {
+    sign_table <- data.frame(
+      Metric = c(
+        "Total pairs",
+        "Inverse pairs",
+        "Direct pairs",
+        "Proportion inverse",
+        "Binomial test p-value"
+      ),
+      Value = c(0, NA, NA, NA, NA),
+      stringsAsFactors = FALSE
+    )
+  } else {
+    inverse_flag <- sign(sign_data$small_rna_fold_change) !=
+      sign(sign_data$mrna_fold_change)
+
+    inverse_pairs <- sum(inverse_flag, na.rm = TRUE)
+    direct_pairs <- total_pairs - inverse_pairs
+    proportion_inverse <- inverse_pairs / total_pairs
+
+    sign_test <- binom.test(
+      x = inverse_pairs,
+      n = total_pairs,
+      p = 0.5,
+      alternative = "greater"
+    )
+
+    sign_table <- data.frame(
+      Metric = c(
+        "Total pairs",
+        "Inverse pairs",
+        "Direct pairs",
+        "Proportion inverse",
+        "Binomial test p-value"
+      ),
+      Value = c(
+        total_pairs,
+        inverse_pairs,
+        direct_pairs,
+        round(proportion_inverse, 3),
+        format(sign_test$p.value, digits = 3, scientific = TRUE)
+      ),
+      stringsAsFactors = FALSE
+    )
   }
-  
-  # GGplot2 Call
-  slope_plot = ggplot(data = slope_plot_data,
-                    aes(x = factor(type,levels = c("small_rna","mrna")),y = as.numeric(fold_change),group = index)) + 
-    geom_line(aes(color = factor(class),alpha = factor(class)),size = 0.5) + 
-    scale_color_manual(values = color_values,name = "Feature Class") + 
-    scale_alpha_manual(values = alpha_values,guide = "none") + 
-    xlab("Feature Type") + 
-    scale_x_discrete(expand = expansion(mult = 0)) + 
-    ylab("Log2 Fold Change") + 
-    ggtitle(comparison_name) + 
-    theme_classic() + 
-    theme(axis.text = element_text(size = 12),axis.title = element_text(size = 12)) 
-  
-  # Object Return
-  return(slope_plot)
+
+  return(list(
+    sign_table = sign_table
+  ))
 }
 
 ```
 
 ```{r integrative-render,include=FALSE}
 
-# Knit Object Setup
-integrative_results_tables_out = NULL
-cosmic_plots_out = NULL
-slope_plots_out = NULL
+# ---- Initialize knitted output containers ----
+integrative_results_tables_out <- NULL
+cosmic_plots_out <- NULL
+slope_plots_out <- NULL
+statistical_analysis_out <- NULL
 
-# Pass message to HTML output if plots are not marked for rendering
-if (integrative_params$generate_integrative_results_tables == FALSE) {
-  integrative_results_tables_out = "Integrative Results Tables not marked for rendering"
-}
-if (integrative_params$generate_cosmic_plots == FALSE) {
-  cosmic_plots_out = "Cosmic Plots not marked for rendering"
-}
-if (integrative_params$generate_slope_plots == FALSE) {
-  slope_plots_out = "Slope Plots not marked for rendering"
+
+# ---- Messages for outputs not selected for rendering ----
+if (!integrative_params$generate_integrative_results_tables) {
+  integrative_results_tables_out <- "Integrative Results Tables not marked for rendering"
 }
 
-# Produce Combination List for Interactive Tables and Plots
-if (integrative_params$cross_comparisons == "") {
-  cross_comparisons = intersect(colnames(small_rna_combinations),colnames(mrna_combinations))
+if (!integrative_params$generate_cosmic_plots) {
+  cosmic_plots_out <- "Cosmic Plots not marked for rendering"
+}
+
+if (!integrative_params$generate_slope_plots) {
+  slope_plots_out <- "Slope Plots not marked for rendering"
+}
+
+if (!integrative_params$generate_statistical_analysis) {
+  statistical_analysis_out <- "Statistical Analysis not marked for rendering"
+}
+
+
+# ---- Determine comparison list ----
+if (identical(integrative_params$cross_comparisons, "")) {
+  cross_comparisons <- intersect(
+    colnames(small_rna_combinations),
+    colnames(mrna_combinations)
+  )
 } else {
-  cross_comparisons = unlist(strsplit(integrative_params$cross_comparisons,","))
+  cross_comparisons <- trimws(
+    unlist(strsplit(integrative_params$cross_comparisons, ","))
+  )
 }
 
-# Build List of Slope Plot Classes
-if (integrative_params$slope_plot_classes == "") {
-  slope_plot_classes = levels(as.factor(gene_table[,3]))
+
+# ---- Determine slope plot classes ----
+if (identical(integrative_params$slope_plot_classes, "")) {
+  slope_plot_classes <- unique(gene_table$sRNA_Class)
 } else {
-  slope_plot_classes = unlist(strsplit(integrative_params$slope_plot_classes,","))
+  slope_plot_classes <- trimws(
+    unlist(strsplit(integrative_params$slope_plot_classes, ","))
+  )
 }
 
-# Comparison-Wise Rendering
-for (i in 1:length(cross_comparisons)) {
-  
-  # Match Intended Comparisons with Results Object IDs
-  small_rna_res_id = which(colnames(small_rna_combinations) == cross_comparisons[i])
-  mrna_res_id = which(colnames(mrna_combinations) == cross_comparisons[i])
-  
-  # Construct Target Data Matrix
-  target_data = na.omit(as.matrix(cbind(target_matrix[,1],small_rna_class_names[target_matrix[,1]],
-                                        small_rna_res[[small_rna_res_id]][target_matrix[,1],c(1,2,6)],
-                                        target_matrix[,2],mrna_class_names[target_matrix[,2]],
-                                        mrna_res[[mrna_res_id]][target_matrix[,2],c(1,2,6)])))
-  
-  # Define Target Data Matrix Column Names
-  colnames(target_data) = c("small_rna","small_rna_class",
-                            "small_rna_mean","small_rna_fold_change","small_rna_p_value",
-                            "mrna_target","mrna_class",
-                            "mrna_mean","mrna_fold_change","mrna_p_value")
-  
-  # Convert Appropriate Columns to Numeric Data
-  target_data = data.frame(target_data)
-  target_data$small_rna_mean = as.numeric(target_data$small_rna_mean)
-  target_data$small_rna_fold_change = as.numeric(target_data$small_rna_fold_change)
-  target_data$small_rna_p_value = as.numeric(target_data$small_rna_p_value)
-  target_data$mrna_mean = as.numeric(target_data$mrna_mean)
-  target_data$mrna_fold_change = as.numeric(target_data$mrna_fold_change)
-  target_data$mrna_p_value = as.numeric(target_data$mrna_p_value)
-  
-  # Assign Object for Knitting Plots
-  assign(paste0("target_data",i,"_plots"),target_data)
-  
-  # Integrative Results Tables Rendering and Saving
-  if (integrative_params$generate_integrative_results_tables == TRUE) {
-    
-    # Round Numeric Columns
-    for (j in c(3:5,8:10)) {
-      target_data[,j] = round(as.numeric(target_data[,j]),digits = 3)
-    }
-    
-    # Assign Object for Knitting Tables
-    assign(paste0("target_data",i),target_data)
-    
-    # Table Saving
-    write.csv(target_data,paste0(format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_output/",
-                                 format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_",
-                                 cross_comparisons[i],"_integrative_data.csv"),row.names = FALSE)
-    
-    # Knit Object Generation
-    integrative_results_tables_out = c(integrative_results_tables_out,knit_expand(text = paste0("### ",sub("_vs_"," vs ",cross_comparisons[i]))))
-    integrative_results_tables_out = c(integrative_results_tables_out,knit_expand(text = "```{r integrative-tables{{i}},echo=FALSE,warning=FALSE}\n datatable(target_data{{i}})\n```\n"))
-    
-  } else {
-    
-    # Null Plots Rendering
-    integrative_results_tables_out = c(integrative_results_tables_out,"")
-    
+
+# ---- Loop over comparisons ----
+for (i in seq_along(cross_comparisons)) {
+
+  comparison_id <- cross_comparisons[i]
+  comparison_label <- sub("_vs_", " vs ", comparison_id)
+
+  # ---- Match comparison IDs in results objects ----
+  small_rna_res_id <- which(colnames(small_rna_combinations) == comparison_id)
+  mrna_res_id <- which(colnames(mrna_combinations) == comparison_id)
+
+  # ---- Skip comparisons not found in both result sets ----
+  if (length(small_rna_res_id) == 0 || length(mrna_res_id) == 0) {
+    next
   }
-  
-  # Cosmic Plot Rendering and Saving
-  if (integrative_params$generate_cosmic_plots == TRUE) {
-    
-    # HTML Widget Saving
-    htmlwidgets::saveWidget(cosmic_plot(target_data,sub("_vs_"," vs ",cross_comparisons[i])),
-                            paste0(format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_output/",
-                                   format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_",
-                                   cross_comparisons[i],"_cosmic_plot.html"))
-    
-    # Remove Accessory Cosmic Plot Files
-    unlink(paste0(format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_output/",
-                  format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_",
-                  cross_comparisons[i],"_cosmic_plot_files/"),recursive = TRUE)
-    
-    
-    # Knit Object Generation
-    cosmic_plots_out = c(cosmic_plots_out,knit_expand(text = paste0("### ",sub("_vs_"," vs ",cross_comparisons[i]))))
-    cosmic_plots_out = c(cosmic_plots_out,knit_expand(text = "```{r cosmic-plots{{i}},echo=FALSE,warning=FALSE}\n cosmic_plot(target_data{{i}}_plots,sub('_vs_',' vs ',cross_comparisons[{{i}}]))\n```\n"))
-    
+
+  # ---- Construct integrative target data ----
+  small_rna_stats <- as.data.frame(
+  small_rna_res[[small_rna_res_id]][target_pairs$sRNA_ID, c(1, 2, 6)]
+)
+
+mrna_stats <- as.data.frame(
+  mrna_res[[mrna_res_id]][target_pairs$Target_ID, c(1, 2, 6)]
+)
+
+target_data <- data.frame(
+  small_rna = unname(small_rna_cts_names[target_pairs$sRNA_ID]),
+  small_rna_class = unname(small_rna_class_names[target_pairs$sRNA_ID]),
+  small_rna_mean = small_rna_stats[, 1],
+  small_rna_fold_change = small_rna_stats[, 2],
+  small_rna_p_value = small_rna_stats[, 3],
+  mrna_target = target_pairs$Target_ID,
+  mrna = target_pairs$Target_Name,
+  mrna_class = rep("mRNA", nrow(target_pairs)),
+  mrna_mean = mrna_stats[, 1],
+  mrna_fold_change = mrna_stats[, 2],
+  mrna_p_value = mrna_stats[, 3],
+  stringsAsFactors = FALSE
+)
+
+target_data <- target_data[
+  !is.na(target_data$small_rna_mean) &
+    !is.na(target_data$small_rna_fold_change) &
+    !is.na(target_data$small_rna_p_value) &
+    !is.na(target_data$mrna_mean) &
+    !is.na(target_data$mrna_fold_change) &
+    !is.na(target_data$mrna_p_value),
+]
+
+if (nrow(target_data) == 0) {
+  stop("target_data is empty for comparison: ", comparison_id, call. = FALSE)
+}
+
+  # ---- Convert numeric columns ----
+  target_data$small_rna_mean <- as.numeric(target_data$small_rna_mean)
+  target_data$small_rna_fold_change <- as.numeric(target_data$small_rna_fold_change)
+  target_data$small_rna_p_value <- as.numeric(target_data$small_rna_p_value)
+
+  target_data$mrna_mean <- as.numeric(target_data$mrna_mean)
+  target_data$mrna_log2_mean <- log2(target_data$mrna_mean + 1)
+  target_data$mrna_fold_change <- as.numeric(target_data$mrna_fold_change)
+  target_data$mrna_p_value <- as.numeric(target_data$mrna_p_value)
+
+  # ---- Store full target data for plotting ----
+  assign(paste0("target_data", i, "_plots"), target_data)
+
+
+  # ---- Statistical analysis: render and store ----
+  if (integrative_params$generate_statistical_analysis) {
+
+    stats_out <- integrative_statistics(
+      target_data,
+      comparison_label
+    )
+
+    assign(paste0("sign_test_table", i), stats_out$sign_table)
+
+    # ---- Save statistical analysis tables ----
+    write.csv(
+      stats_out$sign_table,
+      file.path(
+        out_dir,
+        paste0(
+          integrative_params$integrative_experiment_id, "_",
+          comparison_id,
+          "_sign_test.csv"
+        )
+      ),
+      row.names = FALSE
+    )
+
+    statistical_analysis_out <- c(
+      statistical_analysis_out,
+      knit_expand(text = paste0("### ", comparison_label))
+    )
+
+    statistical_analysis_out <- c(
+      statistical_analysis_out,
+      paste0(
+        "#### Sign Test\n",
+        "Inverse relationships were defined as small RNA–mRNA target pairs exhibiting opposite log₂ fold-change directions, whereas direct relationships were defined as target pairs exhibiting matching fold-change directions. For statistical testing, both the small RNA and corresponding mRNA were required to pass the selected adjusted p-value and fold-change thresholds. A one-sided binomial sign test was performed to evaluate whether inverse-direction target pairs occurred more frequently than expected under the null hypothesis of equal proportions of inverse and direct relationships (p = 0.5). Enrichment of inverse-direction relationships may be consistent with small RNA-mediated regulation; however, these results should be interpreted as evidence of association rather than direct mechanistic validation."
+      )
+    )
+
+    statistical_analysis_out <- c(
+      statistical_analysis_out,
+      knit_expand(
+        text = "```{r sign-test-table{{i}},echo=FALSE,warning=FALSE}\nDT::datatable(sign_test_table{{i}}, options = list(dom = 't', paging = FALSE), rownames = FALSE)\n```\n"
+      )
+    )
+
   } else {
-    
-    # Null Plots Rendering
-    cosmic_plots_out = c(cosmic_plots_out,"")
-    
+    statistical_analysis_out <- c(statistical_analysis_out, "")
   }
-  
-  # Slope Plot Rendering and Saving
-  if (integrative_params$generate_slope_plots == TRUE) {
-    
-    # Plot Saving
-    pdf(paste0(format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_output/",
-               format(Sys.Date(),format = "%d_%m_%y_"),integrative_params$integrative_experiment_id,"_",
-               cross_comparisons[i],"_slope_plot.pdf"),
-        title = paste0("Slope Plot"),height = 6.5,width = 6.5)
-    print(slope_plot(target_data,sub("_vs_"," vs ",cross_comparisons[i]),slope_plot_classes))
-    dev.off()
-    
-    # Knit Object Generation
-    slope_plots_out = c(slope_plots_out,knit_expand(text = paste0("### ",sub("_vs_"," vs ",cross_comparisons[i]))))
-    slope_plots_out = c(slope_plots_out,knit_expand(text = "```{r slope-plot{{i}},echo=FALSE,warning=FALSE}\n slope_plot(target_data{{i}}_plots,sub('_vs_',' vs ',cross_comparisons[{{i}}]),slope_plot_classes)\n```\n"))
-    
+
+
+  # ---- Integrative results tables: render and save ----
+  if (integrative_params$generate_integrative_results_tables) {
+
+    target_data_results <- target_data
+
+    # ---- Round means to 1 decimal ----
+    target_data_results[c("small_rna_mean", "mrna_mean")] <- lapply(
+      target_data_results[c("small_rna_mean", "mrna_mean")],
+      function(x) round(as.numeric(x), digits = 1)
+    )
+
+    # ---- Keep fold changes and adjusted p-values at 3 decimals ----
+    target_data_results[c(
+      "small_rna_fold_change",
+      "small_rna_p_value",
+      "mrna_fold_change",
+      "mrna_p_value"
+    )] <- lapply(
+      target_data_results[c(
+        "small_rna_fold_change",
+        "small_rna_p_value",
+        "mrna_fold_change",
+        "mrna_p_value"
+      )],
+      function(x) round(as.numeric(x), digits = 3)
+    )
+
+    target_data_results <- target_data_results[, c(
+      "small_rna",
+      "small_rna_class",
+      "small_rna_mean",
+      "small_rna_fold_change",
+      "small_rna_p_value",
+      "mrna",
+      "mrna_mean",
+      "mrna_fold_change",
+      "mrna_p_value"
+    )]
+
+    colnames(target_data_results) <- c(
+      "sRNA",
+      "sRNA_class",
+      "sRNA_mean",
+      "sRNA_log2_FC",
+      "sRNA_padj",
+      "mRNA",
+      "mRNA_mean",
+      "mRNA_log2_FC",
+      "mRNA_padj"
+    )
+
+    assign(paste0("target_data", i), target_data_results)
+
+    write.csv(
+      target_data_results,
+      file.path(
+        out_dir,
+        paste0(
+          integrative_params$integrative_experiment_id, "_",
+          comparison_id,
+          "_integrative_data.csv"
+        )
+      ),
+      row.names = FALSE
+    )
+
+    integrative_results_tables_out <- c(
+      integrative_results_tables_out,
+      knit_expand(text = paste0("### ", comparison_label))
+    )
+
+    integrative_results_tables_out <- c(
+      integrative_results_tables_out,
+      knit_expand(
+        text = "```{r integrative-tables{{i}},echo=FALSE,warning=FALSE}\nDT::datatable(target_data{{i}}, options = list(initComplete = DT::JS('function(settings, json) { var api = this.api(); var searchBox = $(api.table().container()).find(\"input[type=search]\"); searchBox.off(\"keyup.DT search.DT input.DT paste.DT cut.DT\").on(\"keyup\", function() { api.search(this.value, true, false).draw(); }); }')))\n```\n"
+      )
+    )
+
   } else {
+    integrative_results_tables_out <- c(integrative_results_tables_out, "")
+  }
+
+
+  # ---- Cosmic plots: render and save ----
+  if (integrative_params$generate_cosmic_plots) {
+    cosmic_plot_object <- cosmic_plot(target_data, comparison_label)
     
-    # Null Plots Rendering
-    slope_plots_out = c(slope_plots_out,"")
-    
+    html_path <- file.path(
+  out_dir,
+  paste0(
+    integrative_params$integrative_experiment_id, "_",
+    comparison_id,
+    "_cosmic_plot.html"
+  )
+)
+
+pdf_path <- file.path(
+  out_dir,
+  paste0(
+    integrative_params$integrative_experiment_id, "_",
+    comparison_id,
+    "_cosmic_plot.pdf"
+  )
+)
+
+html_pdf_path <- file.path(
+  out_dir,
+  paste0(
+    integrative_params$integrative_experiment_id, "_",
+    comparison_id,
+    "_cosmic_plot_pdf_export.html"
+  )
+)
+
+# ---- Save interactive HTML ----
+htmlwidgets::saveWidget(
+  cosmic_plot_object,
+  html_path,
+  selfcontained = TRUE
+)
+
+# ---- Create PDF export HTML ----
+pdf_export_plot <- htmlwidgets::prependContent(
+  cosmic_plot_object,
+  htmltools::tags$head(
+    htmltools::tags$style(htmltools::HTML("
+      @page {
+        size: 14in 8in;
+        margin: 0;
+      }
+
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 1400px !important;
+        min-width: 1400px !important;
+        overflow: visible !important;
+        background: white !important;
+      }
+
+      .html-widget,
+      .plotly,
+      .js-plotly-plot {
+        overflow: visible !important;
+      }
+    "))
+  )
+)
+
+htmlwidgets::saveWidget(
+  pdf_export_plot,
+  file = html_pdf_path,
+  selfcontained = TRUE
+)
+
+chrome_path <- pagedown::find_chrome()
+
+if (!is.null(chrome_path)) {
+
+  pagedown::chrome_print(
+    input = html_pdf_path,
+    output = pdf_path,
+    wait = 2,
+    extra_args = c(
+      "--no-margins",
+      "--print-to-pdf-no-header"
+    )
+  )
+
+  tmp_pdf <- sub("\\.pdf$", "_tmp.pdf", pdf_path)
+
+  pdftools::pdf_subset(
+    input = pdf_path,
+    pages = 1,
+    output = tmp_pdf
+  )
+
+  file.remove(pdf_path)
+  file.rename(tmp_pdf, pdf_path)
+
+} else {
+  message("Chrome not found — skipping cosmic plot PDF export.")
+}
+
+if (file.exists(html_pdf_path)) {
+  unlink(html_pdf_path)
+}
+
+unlink(sub("\\.html$", "_files", html_pdf_path), recursive = TRUE)
+unlink(sub("\\.html$", "_files", html_path), recursive = TRUE)
+
+    cosmic_plots_out <- c(
+      cosmic_plots_out,
+      knit_expand(text = paste0("### ", comparison_label))
+    )
+
+    cosmic_plots_out <- c(
+      cosmic_plots_out,
+      knit_expand(
+        text = "```{r cosmic-plots{{i}},echo=FALSE,warning=FALSE}\ncosmic_plot(target_data{{i}}_plots, sub('_vs_', ' vs ', cross_comparisons[{{i}}]))\n```\n"
+      )
+    )
+
+  } else {
+    cosmic_plots_out <- c(cosmic_plots_out, "")
+  }
+
+
+  # ---- Slope plots: render and save ----
+  if (integrative_params$generate_slope_plots) {
+    slope_plot_object <- slope_plot(
+  target_data,
+  comparison_label,
+  slope_plot_classes
+)
+
+slope_html_file <- file.path(
+  out_dir,
+  paste0(
+    integrative_params$integrative_experiment_id, "_",
+    comparison_id,
+    "_slope_plot.html"
+  )
+)
+
+slope_pdf_file <- file.path(
+  out_dir,
+  paste0(
+    integrative_params$integrative_experiment_id, "_",
+    comparison_id,
+    "_slope_plot.pdf"
+  )
+)
+
+htmltools::save_html(
+  htmltools::tagList(slope_plot_object),
+  file = slope_html_file
+)
+
+chrome_path <- pagedown::find_chrome()
+
+if (!is.null(chrome_path)) {
+  pagedown::chrome_print(
+    input = slope_html_file,
+    output = slope_pdf_file,
+    wait = 2,
+    extra_args = c(
+      "--no-margins",
+      "--print-to-pdf-no-header"
+    )
+  )
+} else {
+  message("Chrome not found — skipping slope plot PDF export.")
+}
+    slope_plots_out <- c(
+      slope_plots_out,
+      knit_expand(text = paste0("### ", comparison_label))
+    )
+
+    slope_plots_out <- c(
+      slope_plots_out,
+      knit_expand(
+        text = "```{r slope-plot{{i}},echo=FALSE,warning=FALSE}\nslope_plot(target_data{{i}}_plots, sub('_vs_', ' vs ', cross_comparisons[{{i}}]), slope_plot_classes)\n```\n"
+      )
+    )
+
+  } else {
+    slope_plots_out <- c(slope_plots_out, "")
   }
 }
 
 ```
 
-Welcome to the Montgomery DESeq2 Pipeline for small RNA and mRNA integrative experiments. This pipeline allows for the analysis and visualization of data describing the interactions between small RNA and mRNA components of the same experiment. First, separate runs of the Montgomery R Markdown pipeline for individual experiments are executed, once for the small RNA data and once for the mRNA data. Then, information found in an imported gene table describing targets for each small RNA or mRNA gene is used to produce integrative results tables, cosmic scatter plots, and slope plots. To see more information about the individual experiment Markdown pipeline, visit https://github.com/MontgomeryLab/DESeq2App/tree/main/Markdown_Pipeline. To see more information about the integrative R Markdown pipeline, visit https://github.com/MontgomeryLab/DESeq2App/tree/main/Integrative_Pipeline.
+The RNA Integrative Pipeline is designed to combine differential expression results from matched small RNA and mRNA sequencing experiments to enable integrated analysis of regulatory relationships. Separate DESeq2 analyses are first performed for small RNA and mRNA datasets, after which results are merged using an imported gene table defining small RNA–mRNA target relationships.
 
-## Integrative Results Tables
+For each experimental comparison shared across datasets, the pipeline generates integrative results tables and interactive visualizations that summarize fold-change relationships between small RNAs and their corresponding mRNA targets. These outputs facilitate exploration of expression patterns while preserving statistical information derived from the underlying DESeq2 analyses.
 
-Integrative Results Tables include the class, base mean, fold change, and negative binomial test p-value for every small RNA and mRNA target pairing for which valid data is available (some low count genes have indeterminable fold changes and p-values. These genes have therefore been excluded). Classes are derived from the imported gene table. Base mean, fold change, and p-value entries are derived from the DESeq2 analysis. 
+Only target pairs with valid differential expression statistics in both datasets are retained for downstream analysis. Statistical thresholds, including adjusted p-value and fold-change cutoffs, are controlled through the associated YAML parameter file and applied consistently across integrative analyses.
 
-## Rendered Plots {.tabset}
+For details about the individual DESeq2 pipeline, visit: <https://github.com/MontgomeryLab/DESeq2App/tree/main/Markdown_Pipeline>
 
-`r paste(knit(text = integrative_results_tables_out),collapse = '\n')`
+For details about the integrative pipeline, visit: <https://github.com/MontgomeryLab/DESeq2App/tree/main/Integrative_Pipeline>
 
-\newpage
+## Integrative Results Tables {.tabset}
 
-## Cosmic Plots
+Integrative Results Tables summarize differential expression metrics for each valid small RNA–mRNA target pair identified through the imported gene table. Included variables consist of small RNA class, normalized mean expression, log₂ fold change, and adjusted p-value for both the small RNA and corresponding mRNA target.
 
-Cosmic Plots utilize ggplot2 techniques for representing five-dimensions of data within a two-dimensional scatter plot. The log2 fold change of the small RNA gene in each small RNA and mRNA pairing is represented on the x-axis, while the log2 fold change of the mRNA target of the corresponding small RNA is represented on the y-axis. Furthermore, pairings with an insignificant small RNA p-value (p > 0.05) are plotted in light grey, and pairings with a significant mRNA p-value (p < 0.05) are given a dark grey border around the point. Points are sized according to their mRNA log2 mean, and they are colored (if the small RNA p-value is significant) on a modified 'blues' color scale from the RColorBrewer packageaccording to their small RNA mean (not log2 transformed for better texturing), with darker blues and black representing higher means. Thus, a comprehensive view of every small RNA and mRNA pairing across the two individual experiments can be visualized amongst the plot's four quadrants. Using the plotly package, these scatter plots offer zooming, panning, significance group isolation, and hover text features. Plots for each experimental contrast (provided the contrast is present in both experiments and specified in the associated yaml parameter) are saved as html widgets, which can be printed within a browser window to high-quality pdf images. 
+Only target pairs with valid differential expression statistics in both datasets are retained. Genes lacking calculable fold-change estimates or adjusted p-values are excluded from integrative analysis. Small RNA class assignments are obtained from the imported gene table, whereas normalized expression values and differential expression statistics are derived directly from the DESeq2 output.
 
-## Rendered Plots {.tabset}
-
-`r paste(knit(text = cosmic_plots_out),collapse = '\n')`
+`r paste(knitr::knit_child(text = integrative_results_tables_out, quiet = TRUE), collapse = '\n')`
 
 \newpage
 
-## Slope Plots
+## Cosmic Plots {.tabset}
 
-Slope Plots provide another way of visualizing fold change relationships between small RNA and mRNA pairings, namely by tracing a straight line between the fold change level of the small RNA gene on the left side of the plot and the fold change level of the corresponding mRNA target on the right side of the plot. Lines are colored by their class as specified in the gene table (colors are built from a high-contrast, accessible palette developed by the Montgomery Lab), and it is recommended that classes representing smaller numbers of genes be singled out for plotting using the associated yaml parameter. This plot may be most useful for analyzing micro RNA (miRNA) and mRNA target relationships from one experimental condition to the other. Furthermore, line opacity for a certain class is inversely proportional to the number of genes in that class according to the function opacity = (1/(1 + n/100)), where n is the number of genes for a class. Thus, classes with an abundance of genes will appear more transparent. Lines from classes with over 5000 genes will be colored grey automatically in order to preserve visualization texture. Plots for each experimental contrast (provided the contrast is present in both experiments and specified in the associated yaml parameter) are saved as pdf files. 
+Cosmic plots are interactive scatter plots that visualize differential expression relationships between small RNAs and their corresponding mRNA targets across shared experimental contrasts. For each target pair, the small RNA log₂ fold change is displayed on the x-axis and the corresponding mRNA log₂ fold change is displayed on the y-axis.
 
-## Rendered Plots {.tabset}
+Target pairs are categorized into four significance groups according to adjusted p-value and fold-change thresholds applied independently to both small RNA and mRNA datasets: (1) both significant, (2) significant small RNA only, (3) significant mRNA only, or (4) neither significant. Statistical significance is defined as an adjusted p-value below the selected threshold together with an absolute log₂ fold change exceeding the selected fold-change cutoff.
 
-`r paste(knit(text = slope_plots_out),collapse = '\n')`
+Point color reflects log₂-transformed mean small RNA abundance, while point size reflects mRNA log₂ mean expression for target pairs with statistically significant mRNA differential expression. Quadrant annotations summarize the number of target pairs within each significance category, enabling rapid assessment of directional expression relationships across the dataset.
+
+Because many small RNAs are associated with transcript destabilization or translational repression, inverse-direction patterns (small RNA upregulated with mRNA downregulated, or vice versa) may be consistent with regulatory relationships. However, these visualizations are intended for exploratory interpretation and do not independently establish causality.
+
+Plots are generated for experimental contrasts shared between both datasets and specified through the associated YAML parameter file.
+
+`r paste(knitr::knit_child(text = cosmic_plots_out, quiet = TRUE), collapse = '\n')`
 
 \newpage
+
+## Slope Plots {.tabset}
+
+Slope plots provide an alternative visualization of fold-change relationships between small RNAs and their corresponding mRNA targets. For each target pair, a line connects the small RNA log₂ fold change on the left side of the plot to the associated mRNA log₂ fold change on the right side.
+
+Plots are separated by small RNA class, as specified through the associated YAML parameter file. Within each class, lines are colored by significance group: both small RNA and mRNA significant, significant small RNA only, significant mRNA only, or neither significant. For slope plots, significance is determined using adjusted p-value thresholds only.
+
+Line opacity is scaled inversely with the number of target pairs within each class, so classes containing more target pairs appear more transparent. Slope plots are useful for assessing whether target pairs within selected small RNA classes tend to show coordinated or opposing fold-change directions.
+
+`r paste(knitr::knit_child(text = slope_plots_out, quiet = TRUE), collapse = '\n')`
+
+\newpage
+
+## Statistical Analysis {.tabset}
+
+Statistical Analysis provides a quantitative summary of global small RNA–mRNA relationships across each comparison. These summaries allow users to assess whether the data exhibit patterns consistent with inverse regulatory relationships between small RNAs and their mRNA targets.
+
+`r paste(knitr::knit_child(text = statistical_analysis_out, quiet = TRUE), collapse = '\n')`
+
+\newpage
+
+```{=html}
+<script>
+(function () {
+
+  var DIM_OPACITY  = 0.04;
+  var TRACE_COLORS = ['#E65396', '#2171B5', '#E69F00', '#808080'];
+
+  // Store original state per figure on first encounter
+  var origOpacity = new WeakMap();
+  var origLine    = new WeakMap();
+  var origY       = new WeakMap();
+
+  function saveOriginals(div) {
+    if (!origOpacity.has(div)) {
+      origOpacity.set(div, div.data.map(function (t) {
+        return (t.marker && t.marker.opacity !== undefined) ? t.marker.opacity : 1;
+      }));
+    }
+    if (!origLine.has(div)) {
+      origLine.set(div, div.data.map(function (t) {
+        // marker.line is for scatter markers; line is for slope plot lines
+        var ml = t.marker && t.marker.line;
+        var tl = t.line;
+        return {
+          color: (tl && tl.color) || (ml && ml.color) || 'rgba(0,0,0,0)',
+          width: (ml && ml.width) || 0
+        };
+      }));
+    }
+    if (!origY.has(div)) {
+      origY.set(div, div.data.map(function (t) {
+        return t.y ? t.y.slice() : null;
+      }));
+    }
+  }
+
+  // ---- Scatter plot update ----
+  function updateScatter(div, regex) {
+    saveOriginals(div);
+    var ops     = origOpacity.get(div);
+    var lines   = origLine.get(div);
+
+    // quadrant counts per significance group
+    var qcounts   = TRACE_COLORS.map(function () { return [0, 0, 0, 0]; });
+    var cdTraceIdx = 0;
+
+    div.data.forEach(function (trace, ti) {
+      if (!trace.customdata || !trace.customdata.length) return;
+
+      var colorIdx = cdTraceIdx++;
+
+      if (!regex) {
+        // Restore original state — no outline, original opacity
+        Plotly.restyle(div, {
+          'marker.opacity':    ops[ti],
+          'marker.line.color': lines[ti].color,
+          'marker.line.width': lines[ti].width
+        }, [ti]);
+        // Count all points for quadrant display
+        trace.customdata.forEach(function (cd, pi) {
+          if (colorIdx < qcounts.length) {
+            var x = trace.x[pi], y = trace.y[pi];
+            var qi  = (x > 0 ? 0 : 1) + (y > 0 ? 0 : 2);
+            qcounts[colorIdx][qi]++;
+          }
+        });
+        return;
+      }
+
+      // Build per-point arrays
+      var opArr  = [], lcArr = [], lwArr = [];
+      trace.customdata.forEach(function (cd, pi) {
+        var match = regex.test(String(cd));
+        if (match && colorIdx < qcounts.length) {
+          var x = trace.x[pi], y = trace.y[pi];
+          var qi  = (x > 0 ? 0 : 1) + (y > 0 ? 0 : 2);
+          qcounts[colorIdx][qi]++;
+        }
+        opArr.push(match ? 1.0 : DIM_OPACITY);
+        lcArr.push(match ? 'black' : 'rgba(0,0,0,0)');
+        lwArr.push(match ? 1.5    : 0);
+      });
+
+      Plotly.restyle(div, {
+        'marker.opacity':    [opArr],
+        'marker.line.color': [lcArr],
+        'marker.line.width': [lwArr]
+      }, [ti]);
+    });
+
+    // Update quadrant annotation texts
+    var anns = div.layout.annotations;
+    if (!anns) return;
+    var newAnns = anns.map(function (ann) { return Object.assign({}, ann); });
+    newAnns.forEach(function (ann) {
+      var x = ann.x, y = ann.y;
+      var isCorner = (
+        (Math.abs(x - 0.98) < 0.01 || Math.abs(x - 0.02) < 0.01) &&
+        (Math.abs(y - 0.98) < 0.01 || Math.abs(y - 0.02) < 0.01)
+      );
+      if (!isCorner) return;
+      var qi = (x > 0.5 ? 0 : 1) + (y > 0.5 ? 0 : 2);
+      ann.text = TRACE_COLORS.map(function (color, ci) {
+        return "<span style='color:" + color + "'>&#9679;</span> " +
+          (qcounts[ci] ? qcounts[ci][qi] : 0);
+      }).join('<br>');
+    });
+    Plotly.relayout(div, { annotations: newAnns });
+  }
+
+  // ---- Slope plot update ----
+  function toFullOpacity(rgbaStr) {
+    // "rgba(r,g,b,a)" → "rgba(r,g,b,1)"
+    if (typeof rgbaStr !== 'string') return rgbaStr;
+    return rgbaStr.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, 'rgba($1,$2,$3,1)');
+  }
+
+  function updateSlope(div, regex) {
+    saveOriginals(div);
+    var origYArr   = origY.get(div);
+    var origLineArr = origLine.get(div);
+
+    div.data.forEach(function (trace, ti) {
+      if (!trace.customdata || !trace.customdata.length) return;
+      var baseY = origYArr[ti];
+      if (!baseY) return;
+
+      if (!regex) {
+        // Restore original y and original line color
+        Plotly.restyle(div, {
+          y:            [baseY.slice()],
+          'line.color': origLineArr[ti].color
+        }, [ti]);
+        return;
+      }
+
+      // Hide non-matching segments; show matching at full opacity
+      var hasMatch = false;
+      var newY = baseY.map(function (yval, pi) {
+        var cd = String(trace.customdata[pi] || '');
+        if (cd === '') return null;
+        var match = regex.test(cd);
+        if (match) hasMatch = true;
+        return match ? yval : null;
+      });
+
+      Plotly.restyle(div, {
+        y:            [newY],
+        'line.color': hasMatch ? toFullOpacity(origLineArr[ti].color) : origLineArr[ti].color
+      }, [ti]);
+    });
+  }
+
+  // ---- Identify and update all plots ----
+  function applySearch(searchTerm) {
+    var regex = null;
+    if (searchTerm && searchTerm.trim()) {
+      try { regex = new RegExp(searchTerm, 'i'); } catch (e) {}
+    }
+
+    document.querySelectorAll('.js-plotly-plot').forEach(function (div) {
+      if (!div.data || !div.data.length) return;
+      var t0 = div.data[0];
+      if (!t0.customdata) return;
+
+      // Distinguish by x-axis type: scatter=numeric, slope=categorical ("sRNA"/"mRNA")
+      var firstX = t0.x && t0.x.length ? t0.x.find(function(v){ return v !== null && v !== undefined; }) : null;
+      if (firstX === null || firstX === undefined) return;
+
+      if (typeof firstX === 'number') {
+        updateScatter(div, regex);
+      } else if (firstX === 'sRNA' || firstX === 'mRNA') {
+        updateSlope(div, regex);
+      }
+    });
+  }
+
+  // ---- Hook into DT search box ----
+  function attachSearch() {
+    document.querySelectorAll('.dataTables_filter input[type=search]').forEach(function (input) {
+
+      // Keyup: only update the table (fast), not the plots
+      input.removeEventListener('keyup', input._searchHandler);
+      input._searchHandler = function () {
+        var api = $(input).closest('.dataTables_wrapper').find('table').DataTable();
+        api.search(this.value, true, false).draw();
+      };
+      input.addEventListener('keyup', input._searchHandler);
+
+      // Inject "Plot" button next to the search box (once only)
+      if (!input._plotBtnAdded) {
+        var btn = document.createElement('button');
+        btn.textContent = 'Plot';
+        btn.title = 'Update scatter and slope plots based on current search';
+        btn.style.cssText = [
+          'margin-left:8px',
+          'padding:3px 14px',
+          'font-size:13px',
+          'cursor:pointer',
+          'border:1px solid #aaa',
+          'border-radius:3px',
+          'background:#f8f8f8'
+        ].join(';');
+        btn.addEventListener('click', function () {
+          applySearch(input.value);
+        });
+        input.parentNode.insertBefore(btn, input.nextSibling);
+        input._plotBtnAdded = true;
+      }
+    });
+  }
+
+  // DT may not be ready at DOMContentLoaded — poll briefly
+  document.addEventListener('DOMContentLoaded', function () {
+    var attempts = 0;
+    var timer = setInterval(function () {
+      if (document.querySelectorAll('.dataTables_filter input').length > 0 || attempts > 20) {
+        clearInterval(timer);
+        attachSearch();
+      }
+      attempts++;
+    }, 300);
+  });
+
+})();
+</script>
+```

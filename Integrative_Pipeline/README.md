@@ -1,181 +1,358 @@
-# RNA-Integrate: Integrative Pipeline for Parallel mRNA and small RNA Data
+# RNA-Integrate: Integrative Pipeline for Parallel mRNA and Small RNA Data
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- [Installation](#installation)
-- [Configuration Files](#configuration-files)
-  - [Integrative Parameters YAML](#integrative-parameters-yaml)
-  - [Metadata CSV](#metadata-csv)
-  - [Gene Table](#gene-table)
-  - [Class Parameters CSV](#class-parameters-csv)
-- [Output](#output)
-  - [Integrative Results Tables](#integrative-results-tables)
-  - [Cosmic Plots](#cosmic-plots)
-  - [Slope Plots](#slope-plots)
-- [Authors](#authors)
+-   [Introduction](#introduction)
+-   [Installation](#installation)
+-   [Configuration Files](#configuration-files)
+    -   [Integrative Parameters YAML](#integrative-parameters-yaml)
+    -   [Metadata CSV](#metadata-csv)
+    -   [Gene Table](#gene-table)
+    -   [Class Parameters CSV](#class-parameters-csv)
+-   [Output Files](#output-files)
+    -   [DESeq2 Outputs](#deseq2-outputs)
+    -   [Integrative Results Tables](#integrative-results-tables)
+    -   [Cosmic Plots](#cosmic-plots)
+    -   [Slope Plots](#slope-plots)
+    -   [Statistical Analysis](#statistical-analysis)
+-   [Authors](#authors)
 
+## Introduction {#introduction}
 
-## Introduction
+Welcome to the RNA-Integrate R Markdown pipeline by the Montgomery Lab at Colorado State University. This pipeline combines differential expression results from matched small RNA and mRNA sequencing experiments to evaluate small RNA–mRNA target relationships.
 
-Welcome to the Montgomery DESeq2 Pipeline for small RNA and mRNA integrative experiments in R Markdown. This pipeline allows for the analysis and visualization of data describing the interactions between small RNA and mRNA components of the same experiment. First, separate runs of an R Markdown pipeline for individual experiments are executed, once for the small RNA data and once for the mRNA data. Then, information found in an imported gene table describing targets for each small RNA or mRNA gene is used to produce [integrative results tables](#integrative-results-tables), [cosmic plots](#cosmic-plots), and [slope plots](#slope-plots). To see more information about the individual experiment pipeline, click [here](../Markdown_Pipeline/). For each individual experiment run, as well as for the integrative data, knitted R Markdown reports will be produced in addition to plots, tables, and a copy of the yaml parameters file, all saved in separate directories within the markdown pipeline's local directory. 
+The integrative workflow first runs the DESeq2 pipeline separately for the small RNA and mRNA datasets. The resulting differential expression objects are then combined using a user-supplied gene table that defines small RNA IDs, small RNA names, small RNA classes, mRNA target IDs, and mRNA target names.
 
-The pipeline can be executed within R studio using the following command:
+For each comparison shared between the small RNA and mRNA experiments, the pipeline generates integrative results tables, cosmic plots, slope plots, and statistical summaries.
 
-`rmarkdown::render("RNA_Integrate.Rmd",params = yaml::read_yaml("int_params.yml"))`
+The pipeline can be executed in RStudio using:
 
-Or in the command line as such:
+``` r
+rmarkdown::render("RNA_Integrate.Rmd", params = yaml::read_yaml("int_params.yml"))
+```
 
-`R -e 'rmarkdown::render("RNA_Integrate.Rmd",params = yaml::read_yaml("int_params.yml"))'`
+Or from the command line using:
 
-Execution of the pipeline can take up to fifteen minutes depending on the complexity of the experiment and/or the level of customization.
+``` bash
+R -e 'rmarkdown::render("RNA_Integrate.Rmd", params = yaml::read_yaml("int_params.yml"))'
+```
 
-## Installation
+Execution time depends on dataset size, selected outputs, and whether PDF exports are generated for interactive plots.
 
-This pipeline has been developed and tested with R version <strong>4.1.2</strong>. Several packages are required in order to execute the pipeline. These packages will be installed if necessary within the markdown code, but note that some packages may be difficult to install if version inconsistencies and dependency issues arise. For troubleshooting, we suggest trying to install any troublesome packages individually within R studio. We recommend using BioConductor for installing packages like <strong>tximport and DESeq2</strong>. To install a package individually, use the following command in R:
+## Installation {#installation}
 
-`install.packages("Package Name")`
+This pipeline requires R and several CRAN/Bioconductor packages. The integrative script checks for required packages before running and will stop with an informative message if a package is missing.
 
-Or use the command line as such:
+The following CRAN packages are used by the integrative pipeline:
 
-`R -e 'install.packages("Package Name")'`
+-   knitr
+-   rmarkdown
+-   yaml
+-   plotly
+-   htmlwidgets
+-   htmltools
+-   DT
+-   webshot2
+-   ggplot2
+-   pagedown
+-   pdftools
 
-The following packages are used within the pipeline:
+The DESeq2 subpipeline also uses the packages required by the standalone DESeq2 workflow, including:
 
-- knitr: used for knitting markdown files
-  - Xie Y (2021). knitr: A General-Purpose Package for Dynamic Report Generation in R. R package version 1.37, https://yihui.org/knitr/.
-- BiocManager: BioConductor package used to install tximport and DESeq2
-  - Martin Morgan (2021). BiocManager: Access the Bioconductor Project Package Repository. R package version 1.30.16. https://CRAN.R-project.org/package=BiocManager
-- tximport: used to format tabulated counts files into usable forms for DESeq2
-  - Soneson C, Love MI, Robinson MD (2015). “Differential analyses for RNA-seq: transcript-level estimates improve gene-level inferences.” F1000Research, 4. doi: 10.12688/f1000research.7563.1.
-- DESeq2: negative binomial statistical testing and data analysis for DGE experiments
-  - Love, M.I., Huber, W., Anders, S. Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2 Genome Biology 15(12):550 (2014)
-- DT: produces HTML widgets for results tables
-  - Yihui Xie, Joe Cheng and Xianying Tan (2021). DT: A Wrapper of the JavaScript Library 'DataTables'. R package version 0.20. https://CRAN.R-project.org/package=DT
-- ggplot2: dynamic graphics package for PCA Plots and Mean Reads Scatter Plots
-  - Hadley Wickham (2016). ggplot2: Elegant Graphics for Data Analysis. R package version 3.3.5. https://ggplot2.tidyverse.org
-- heatmaply: heatmap package based on plotly, a package for producing interactive graphics
-  - Tal Galili, Alan O'Callaghan, Jonathan Sidi and Carson Sievert (2017). heatmaply: an R package for creating interactive cluster heatmaps for online publishing. R package version 1.3.0. https://doi.org/10.1093/bioinformatics/btx657
+-   tximport
+-   DESeq2
+-   heatmaply
 
-Furthermore, RColorBrewer was used to inspire baseline color palettes for the heatmap and the galaxy scatter plots. RColorBrewer is cited below:
-- Erich Neuwirth (2014). RColorBrewer: ColorBrewer Palettes. R package version 1.1-2. https://CRAN.R-project.org/package=RColorBrewer
+If package installation fails because of version or dependency issues, install the problem package manually in RStudio or from the command line.
 
-## Configuration Files
+To install a CRAN package manually:
 
-### Integrative Parameters YAML
+``` r
+install.packages("PackageName")
+```
 
-The integrative parameters YAML file contains the details of the experimental configuration, including a number of plot customization options, for the individual mRNA and small RNA runs as well as the integrative run. A template int_params.yml file can be seen [here](template_int_params.yml). The following parameters are read from the YAML file during the pipeline's execution:
+To install Bioconductor packages manually:
 
-#### Setup and Metadata Parameters
+``` r
+install.packages("BiocManager")
+BiocManager::install("DESeq2")
+BiocManager::install("tximport")
+```
 
-- mrna_experiment_id/small_rna_experiment_id/integrative_experiment_id: short strings with no spaces or special characters that distinguish particular experimental runs for the mRNA, small RNA, and integrative data. The experiment id will be prepended to the names of the output directory and saved files. 
-- mrna_software_method/small_rna_software_method: the tabulation software used to produce counts files or a counts matrix for the mRNA and small RNA data. Options include "counts_matrix" (FeatureCounts), "tiny_rna" (developed by the Montgomery Lab - https://github.com/MontgomeryLab/tinyRNA), "rsem", "htseq", "salmon", or "kallisto". 
-- mrna_counts_matrix/small_rna_counts_matrix: a string describing the file path for the counts matrix or the tiny RNA matrix, if applicable, for the mRNA and/or small RNA data. Leave as an empty string if count matrices were not used. 
-- mrna_metadata/small_rna_metadata: a string describing the file path for the [Metadata CSV](#metadata-csv) pertaining to the mRNA or small RNA data.
-- mrna_gene_table_method/small_rna_gene_table_method: options include "full_table", "common_names_only", "gene_class_only", and "no_table". see [Gene Table](#gene-table).
-- gene_table: a string describing the file path for the gene table. This gene table should include information about all three data sets. 
+Some PDF exports require Chrome or Chromium through the `pagedown` package. If Chrome is unavailable, the pipeline will still run but may skip PDF export for some interactive plots.
 
-#### Results Tables Parameters
+## Configuration Files {#configuration-files}
 
-- generate_results_tables: TRUE or FALSE logical value describing whether Results Tables should be rendered and saved for both mRNA and small RNA data.
+### Integrative Parameters YAML {#integrative-parameters-yaml}
 
-#### PCA Plot Parameters
+The integrative parameters YAML file controls the mRNA run, small RNA run, and integrative analysis. A template parameters file can be viewed here: [template_int_params.yml](template_int_params.yml).
 
-- generate_pca: TRUE or FALSE logical value describing whether the PCA Plot should be rendered and saved for both mRNA and small RNA data.
+The following parameters are read during pipeline execution.
 
-#### Intra-Condition Scatter Plot Parameters
+#### Run Identity
 
-- generate_intra_condition: TRUE or FALSE logical value describing whether the Intra-Condition Scatter Plot should be rendered and saved for both mRNA and small RNA data.
+-   `mrna_experiment_id`: Short experiment name for the mRNA DESeq2 run.
+-   `small_rna_experiment_id`: Short experiment name for the small RNA DESeq2 run.
+-   `integrative_experiment_id`: Short experiment name for the integrative run.
 
-#### Mean Reads Scatter Plot Parameters
+These values are used in output directory and file names.
 
-- generate_mean_reads: TRUE or FALSE logical value describing whether the Mean Reads Scatter Plots should be rendered and saved for both mRNA and small RNA data.
-- save_mean_reads_interactive: TRUE or FALSE logical value describing whether or not to save interactive html widget versions of mean reads scatter plots
-- p_value_threshold: numeric value threshold for classifying significant genes by p-value (between 0.01 and 0.1 for best results).
-- fold_change_threshold: numeric value threshold for classifying significant genes by fold change (between 1.1 and 2.0 for best results).
-- lower_transparency: numeric value between 0.1 and 1.0 describing the transparency level (alpha level) for insignificant genes. Values closer to 0 produce more transparent points. 
-- upper_transparency: numeric value between 0.1 and 1.0 describing the transparency level (alpha level) for significant genes. Values closer to 0 produce more transparent points. 
-- customize_by_class: TRUE or FALSE logical value describing whether mean reads scatter plots should be customized by their classes, as listed in the gene table. Note that a gene table must be imported in order to customize by class. see [Class Parameters CSV](#class-parameters-csv).
-- customize_by_significance: TRUE or FALSE logical value describing whether points representing insignificant genes should be colored grey. Otherwise, all points will be colored, and their p-value significance will be distinguished only by transparency.
-- mrna_class_parameters/small_rna_class_parameters: a string describing the file path for the plot parameters csv, if applicable, for the mRNA and small RNA data. If left as an empty string, a default class parameters csv will be generated including all classes listed in the gene table. 
+#### Software Methods
 
-#### MA Plot Parameters
+-   `mrna_software_method`: Count input type for the mRNA dataset. Options include:
+    -   `counts_matrix`
+    -   `rsem`
+    -   `htseq`
+    -   `salmon`
+    -   `kallisto`
+-   `small_rna_software_method`: Count input type for the small RNA dataset. Options include:
+    -   `counts_matrix`
+    -   `tiny_rna`
 
-- generate_ma: TRUE or FALSE logical value describing whether the MA Plots should be rendered and saved for both mRNA and small RNA data.
+#### Input Data
 
-#### Heatmap Parameters
+-   `mrna_counts_matrix`: Path to the mRNA counts matrix. This can be left blank for file-based methods that rely on `counts_file` values in the mRNA metadata.
+-   `small_rna_counts_matrix`: Path to the small RNA counts matrix or tinyRNA output table.
+-   `mrna_metadata`: Path to the mRNA metadata CSV.
+-   `small_rna_metadata`: Path to the small RNA metadata CSV.
 
-- generate_heatmap: TRUE or FALSE logical value describing whether the Heatmap should be rendered and saved for both mRNA and small RNA data.
-- heatmap_type: options include "complete", "all_classes", and "selected_classes".
-- heatmap_selected_classes: comma-separated list of classes for which heatmaps will be generated if the heatmap type is "selected_classes". Classes should be identical to those found in the gene table.
+#### Gene Table {#gene-table}
 
-#### Integrative Parameters
+-   `mrna_gene_table_method`: Gene table format for the mRNA DESeq2 run. Options include:
+    -   `full_table`
+    -   `common_names_only`
+    -   `gene_class_only`
+    -   `no_table`
+-   `small_rna_gene_table_method`: Gene table format for the small RNA DESeq2 run. Options include:
+    -   `full_table`
+    -   `common_names_only`
+    -   `gene_class_only`
+    -   `no_table`
+-   `gene_table`: Path to the integrative gene table. This file is required for the integrative analysis.
 
-- cross_comparisons: Comma-separated List of comparisons for which to produce interactive plots. Comparisons should written in the form 'treatment_vs_control' to compare groups 'treatment' and 'control'. Names of treatment and control groups should be identical to those found in the small RNA and mRNA metadata files. Leave as empty string to produce all comparisons present in both small RNA and mRNA epxerimental runs.
+#### Core Output Toggles
 
+These parameters control outputs generated by the mRNA and small RNA DESeq2 subpipeline runs:
 
-- generate_integrative_results_tables: TRUE or FALSE logical value describing whether or not to generate and save integrative results tables.
+-   `generate_results_tables`: `TRUE` or `FALSE`. Render and save DESeq2 results tables.
+-   `generate_pca`: `TRUE` or `FALSE`. Render and save PCA plots.
+-   `generate_intra_condition`: `TRUE` or `FALSE`. Render and save intra-condition replicate scatterplots.
+-   `generate_mean_reads`: `TRUE` or `FALSE`. Render and save mean reads scatter plots.
+-   `generate_ma`: `TRUE` or `FALSE`. Render and save MA plots.
+-   `generate_heatmap`: `TRUE` or `FALSE`. Render and save heatmaps.
 
+#### Integrative Output Toggles
 
-- generate_cosmic_plots: TRUE or FALSE logical value describing whether or not the cosmic plots should be rendered and saved.
+These parameters control outputs generated by the integrative portion of the pipeline:
 
+-   `generate_integrative_results_tables`: `TRUE` or `FALSE`. Render and save integrative results tables.
+-   `generate_cosmic_plots`: `TRUE` or `FALSE`. Render and save cosmic plots.
+-   `generate_slope_plots`: `TRUE` or `FALSE`. Render and save slope plots.
+-   `generate_statistical_analysis`: `TRUE` or `FALSE`. Render and save statistical analysis tables.
 
-- generate_slope_plots: TRUE or FALSE logical value describing whether or not to generate and save slope plots.
+#### Mean Reads Interactive Behavior
 
+-   `save_mean_reads_interactive`: `TRUE` or `FALSE`. Save interactive HTML versions of mean reads scatter plots from the DESeq2 subpipeline runs.
 
-- slope_plot_classes: comma-separated list of classes for which slope plot lines/combinations will be generated. Classes should be identical to those found in the gene table. Slope Plot classes refer to the classes associated with small RNA genes.
+#### Significance and Styling Thresholds
 
-### Metadata CSV
+-   `p_value_threshold`: Adjusted p-value threshold used to classify statistically significant genes or target pairs.
+-   `fold_change_threshold`: Fold-change threshold used to classify statistically significant genes or target pairs.
+-   `lower_transparency`: Alpha value for non-significant genes in DESeq2 mean reads plots.
+-   `upper_transparency`: Alpha value for significant genes in DESeq2 mean reads plots.
 
-The metadata csv summarizes the experimental design and provides information to the DESeq2 analysis for individual mRNA and small RNA experimental runs. The first column of the metadata csv should include counts file names corresponding to each sample. If the software method being used is <strong>Counts Matrix</strong> or <strong>tiny RNA</strong> then the first column can consist of either arbitrary/empty strings or name of the counts matrix repeated on each row. The second column of the metadata csv describes specific replicates for each sample in the experiment (ex. WT_1,prg-1_2, etc.). The third column describes the condition associated with each of the samples/replicates in the previous column (ex. simply "WT" or "prg-1"). The fourth column of the csv consists of logical values (TRUE/FALSE) describing whether each sample belongs to a control group/condition. A template metadata csv can be viewed [here](template_metadata.csv), and a preview is shown below.
+#### Class-Based Styling
 
-| files            | replicates | condition | control_condition |
-|------------------|------------|-----------|-------------------|
-| counts1.results  | N2_1       | N2        | TRUE              |
-| counts2.results  | prg-1      | prg-1     | FALSE             |
-| ...              | ...        | ...       | ...               |
+-   `customize_by_class`: `TRUE` or `FALSE`. If `TRUE`, point colors and sizes can be customized by gene class when class information is available.
+-   `customize_by_significance`: `TRUE` or `FALSE`. If `TRUE`, non-significant genes are colored grey while significant genes retain class-based coloring.
+-   `mrna_class_parameters`: Path to the mRNA class parameters CSV.
+-   `small_rna_class_parameters`: Path to the small RNA class parameters CSV.
 
-### Gene Table
+If a class parameters file is left blank and class customization is enabled, a default class parameters file is generated automatically.
 
-The gene table is a key component of customizing the pipeline's data analysis and visualization. While the gene table is optional for the mRNA and small RNA experimental runs, it is required for the integrative analysis. To disable the gene table for the mRNA and/or small RNA experimental runs, select <strong>no_table</strong> as the gene table method for the corresponding run type in the [integrative parameters yaml](#integrative-parameters-yaml). Choosing <strong>common_names_only</strong> will eliminate the class-based customization in an individual mRNA or small RNA run, and choosing <strong>class_names_only</strong> will eliminate common name substitution in an individual mRNA or small RNA run. The first column of the gene table should consist of any number of gene IDs identical to corresponding IDs from the tabulated counts files or matrix. The second column of the gene table should consist of any common names that should replace a corresponding gene ID in results tables, mean reads scatter plots, and heatmaps. To avoid replacing the gene ID for a particular gene, the gene ID should be repeated in the second column. The third column of the gene table should consist of the class to which each gene ID belongs. Class names are used to characterize and color visualized genes for the mean reads scatter plots, heatmaps (if <strong>selected_classes</strong> is chosen as the heatmap type), and slope plots. They are also included in both individual and integrative results tables. The fourth column of the gene table should consist of targets (ideally other genes in the table but potentially other genes present in the expeerimental data) to be paired with corresponding gene IDs. Multiple targets for a certain gene ID can be listed and separated by commas. A template gene table can be viewed [here](template_gene_table.csv), and a preview is shown below.
+#### Heatmap Configuration
 
-| Gene_ID      | Public_Name   | Class         | Targets        |
-|--------------|---------------|---------------|----------------|
-| MIMAT0000002 | lin-4-5p      | miRNA         | WBGene00003003 |
-| ...          | ...           | ...           | ...            |
+-   `heatmap_type`: Heatmap type for the DESeq2 subpipeline runs. Options include:
+    -   `complete`
+    -   `all_classes`
+    -   `selected_classes`
+-   `heatmap_selected_classes`: Comma-separated list of classes to display when `heatmap_type` is set to `selected_classes`.
 
-### Class Parameters CSV
+#### Integrative Analysis Settings
 
-The class parameters csv is used to customize Mean Reads Scatter Plots for individual mRNA and small RNA experimental runs. If used, only points/genes corresponding to classes in the table will be plotted. The first column of the csv should consist of any number of class names identical to those found in the gene table. Points (genes) corresponding to these classes can be colored and re-sized in the mean reads scatter plots. The second column of the table should consist of hex color values corresponding to each class (ex. "#D95F02"). The third column of the table should consist of numeric values between 0.1 and 1.0 that describe the cex point sizes for genes of the corresponding class (default size is 0.3). The default class parameters table will color all classes in the gene table according to a standard list of 15 colors, and all classes will be given a size value 0.3. A template plot parameters csv can be seen [here](template_class_parameters.csv), and a preview is shown below. 
+-   `cross_comparisons`: Comma-separated list of comparison IDs to analyze. Comparison IDs should match the format generated by the DESeq2 subpipeline, such as `treatment_vs_control`.
 
-| point_class   | point_colors | point_sizes  |
-|---------------|--------------|--------------|
-| ALG           | #D95F02      | 0.7          |
-| ...           | ...          | ...          |
+If `cross_comparisons` is left blank, the pipeline automatically uses comparisons present in both the small RNA and mRNA DESeq2 result sets.
 
-## Output
+-   `slope_plot_classes`: Comma-separated list of small RNA classes to include in slope plots.
 
-For the mRNA and small RNA experimental runs, output will consist of results tables, pca plots, intra-condition scatter plots, mean reads scatter plots, and heatmaps, unless otherwise specified. Information about these outputs can be seen [here](../Markdown_Pipeline/)
+If `slope_plot_classes` is left blank, all small RNA classes in the gene table are used.
 
-### Integrative Results Tables
+## Metadata CSV {#metadata-csv}
 
-Integrative Results Tables include the class, base mean, fold change, and negative binomial test p-value for every small RNA and mRNA target pairing for which valid data is available (some low count genes have indeterminable fold changes and p-values. These genes have therefore been excluded). Classes are derived from the imported gene table. Base mean, fold change, and p-value entries are derived from the DESeq2 analysis. 
+The mRNA and small RNA metadata CSV files describe the experimental design for each DESeq2 subpipeline run.
 
-<img src=../Demo/Integrative_Demo_Results/integrative_demo_integrative_data.png width="800" height="265">
+Each metadata file must contain the following columns:
 
-### Cosmic Plots
+| counts_file | sample_name | condition | control |
+|-------------|-------------|-----------|---------|
+| counts1.txt | wt_1        | wt        | TRUE    |
+| counts2.txt | wt_2        | wt        | TRUE    |
+| counts3.txt | mutant_1    | mutant    | FALSE   |
+| counts4.txt | mutant_2    | mutant    | FALSE   |
 
-Cosmic Plots utilize plotly techniques for representing five-dimensions of data within a two-dimensional scatter plot. The log2 fold change of the small RNA gene in each small RNA and mRNA pairing is represented on the x-axis, while the log2 fold change of the mRNA target of the corresponding small RNA is represented on the y-axis. Furthermore, pairings with an insignificant small RNA p-value (p > 0.05) are plotted in light grey, and pairings with a significant mRNA p-value (p < 0.05) are given a dark grey border around the point. Points are sized according to their mRNA log2 mean, and they are colored (if the small RNA p-value is significant) on a modified 'blues' color scale from the <strong>RColorBrewer</strong> package according to their small RNA mean (not log2 transformed for better texturing), with darker blues and black representing higher means. Thus, a comprehensive view of every small RNA and mRNA pairing across the two individual experiments can be visualized amongst the plot's four quadrants. Using the plotly package, these scatter plots offer zooming, panning, significance group isolation, and hover text features. Plots for each experimental contrast (provided the contrast is present in both experiments and specified in the associated yaml parameter) are saved as html widgets, which can be printed within a browser window to produce high-quality pdf images.
+### Column Descriptions
 
-<img src=../Demo/Integrative_Demo_Results/integrative_demo_cosmic_plot.jpg width="800" height="562">
+-   `counts_file`: Count file name or path for file-based methods such as HTSeq, RSEM, Salmon, or Kallisto. For counts matrices or tinyRNA tables, this column can contain placeholder or null values.
+-   `sample_name`: Sample or replicate name. For counts matrices and tinyRNA tables, these values must match the count-column names.
+-   `condition`: Experimental condition for each sample.
+-   `control`: `TRUE` or `FALSE`, indicating whether the sample belongs to the control condition.
 
-### Slope Plots
+If exactly one condition is marked as the control group, contrasts are generated as each non-control condition versus the control. If no control group or multiple control groups are marked, all pairwise contrasts are generated.
 
-Slope Plots provide another way of visualizing fold change relationships between small RNA and mRNA pairings, namely by tracing a straight line between the fold change level of the small RNA gene on the left side of the plot and the fold change level of the corresponding mRNA target on the right side of the plot. Slope plots rely on ggplot2 plotting techniques. Lines are colored by their class as specified in the gene table (colors are built from a high-contrast, accessible palette developed by the Montgomery Lab), and it is recommended that classes representing smaller numbers of genes be singled out for plotting using the associated yaml parameter. This plot may be most useful for analyzing micro RNA (miRNA) and mRNA target relationships from one experimental condition to the other. Furthermore, line opacity for a certain class is inversely proportional to the number of genes in that class according to the function `opacity = (1/(1 + n/100))`, where n is the number of genes for a class. Thus, classes with an abundance of genes will appear more transparent. Plots for each experimental contrast (provided the contrast is present in both experiments and specified in the associated yaml parameter) are saved as pdf files. 
+A template metadata file can be viewed here: [template_metadata.csv](template_metadata.csv).
 
-<img src=../Demo/Integrative_Demo_Results/integrative_demo_slope_plot.jpg width="800" height="800">
+## Gene Table
 
-## Authors
+The gene table is required for the integrative analysis because it defines the small RNA–mRNA target relationships used to combine the DESeq2 results.
 
-* **Dr. Taiowa Montgomery** - 05/2021-present - Colorado State University - [taimontgomery](https://github.com/taimontgomery)
-* **Spencer Kuhn** - 06/2021-present - Colorado State University - [smcguirekuhn](https://github.com/smcguirekuhn)
+The integrative gene table must contain the following columns:
+
+| sRNA_ID        | sRNA_Name  | sRNA_Class | Target_ID      | Target_Name |
+|----------------|------------|------------|----------------|-------------|
+| WBGene00000001 | smallRNA_1 | miRNA      | WBGene00000002 | target_1    |
+| WBGene00000003 | smallRNA_2 | piRNA      | WBGene00000004 | target_2    |
+
+### Required Columns
+
+-   `sRNA_ID`: Small RNA identifier. Values must match IDs in the small RNA count data after processing.
+-   `sRNA_Name`: Display name for the small RNA.
+-   `sRNA_Class`: Class assigned to the small RNA.
+-   `Target_ID`: mRNA target identifier. Values must match IDs in the mRNA count data after processing.
+
+### Optional Column
+
+-   `Target_Name`: Display name for the mRNA target.
+
+If `Target_Name` is missing, the pipeline automatically uses `Target_ID` as the target name. If `Target_Name` is present but contains blank values, those blank values are filled with the corresponding `Target_ID`.
+
+Only target pairs with valid small RNA and mRNA identifiers are retained for integrative analysis. If no valid target pairs are found, the pipeline stops with an informative error.
+
+A template gene table can be viewed here: [template_gene_table.csv](template_gene_table.csv).
+
+## Class Parameters CSV {#class-parameters-csv}
+
+Class parameters CSV files are used to customize mean reads scatter plots in the individual mRNA and small RNA DESeq2 subpipeline runs.
+
+Separate class parameters files can be supplied for the mRNA and small RNA datasets:
+
+-   `mrna_class_parameters`
+-   `small_rna_class_parameters`
+
+The class parameters CSV should contain:
+
+| point_class | point_colors | point_sizes |
+|-------------|--------------|-------------|
+| miRNA       | #D95F02      | 0.7         |
+| piRNA       | #1B9E77      | 0.5         |
+
+### Column Descriptions
+
+-   `point_class`: Class name matching a class in the gene table or tinyRNA input.
+-   `point_colors`: Hex color value used for that class.
+-   `point_sizes`: Numeric point size used for that class.
+
+If a class parameters file is supplied, only genes belonging to classes listed in the file are plotted in the corresponding mean reads scatter plots.
+
+A template class parameters file can be viewed here: [template_class_parameters.csv](template_class_parameters.csv).
+
+## Output Files {#output-files}
+
+The integrative pipeline creates separate outputs for the small RNA DESeq2 run, the mRNA DESeq2 run, and the integrative analysis.
+
+The integrative output directory contains selected tables, plots, interactive HTML files, PDF exports, and a copy of the integrative parameters YAML used for the run.
+
+## DESeq2 Outputs {#deseq2-outputs}
+
+The pipeline first runs the DESeq2 report separately for the small RNA and mRNA datasets. These subpipeline runs can generate:
+
+-   results tables
+-   PCA plots
+-   intra-condition scatterplots
+-   mean reads scatter plots
+-   MA plots
+-   heatmaps
+-   optional interactive mean reads plots
+
+For detailed descriptions of these outputs, see the [Markdown Pipeline README](../Markdown_Pipeline/README.md).
+
+## Integrative Results Tables {#integrative-results-tables}
+
+Integrative results tables summarize differential expression metrics for each valid small RNA–mRNA target pair.
+
+Included columns are:
+
+-   `sRNA`
+-   `sRNA_class`
+-   `sRNA_mean`
+-   `sRNA_log2_FC`
+-   `sRNA_padj`
+-   `mRNA`
+-   `mRNA_mean`
+-   `mRNA_log2_FC`
+-   `mRNA_padj`
+
+The tables are saved as CSV files and rendered inside the knitted HTML report as interactive DT tables.
+
+[View Example Integrative Results Table CSV](../Demo/Integrative_Demo_Results/integrative_demo_data.csv)
+
+## Cosmic Plots {#cosmic-plots}
+
+Cosmic plots visualize fold-change relationships between small RNAs and their corresponding mRNA targets.
+
+The x-axis shows small RNA log2 fold change, and the y-axis shows mRNA log2 fold change. Each point represents one small RNA–mRNA target pair.
+
+Points are grouped by significance status:
+
+-   significant small RNA and significant mRNA
+-   significant small RNA and non-significant mRNA
+-   non-significant small RNA and significant mRNA
+-   non-significant small RNA and non-significant mRNA
+
+The plot legend can be used to select which data groups are displayed. Hover text provides target-pair information, including small RNA name, small RNA class, mRNA target name, and mRNA target ID.
+
+Cosmic plots are saved as interactive HTML files and exported as PDFs when Chrome is available.
+
+<img src="../Demo/Integrative_Demo_Results/integrative_demo_cosmic_plot.png" width="800"/>
+
+## Slope Plots {#slope-plots}
+
+Slope plots visualize fold-change relationships between small RNAs and their corresponding mRNA targets using paired line segments.
+
+Each line connects the small RNA log2 fold change to the mRNA log2 fold change for one target pair. Slope plots are grouped by selected small RNA classes using the `slope_plot_classes` YAML parameter.
+
+Lines are colored by significance group using the same four categories as the cosmic plot. Line opacity is adjusted based on the number of target pairs in a class so that larger classes are more transparent.
+
+The plot legend can be used to select which significance groups are displayed. Hover text provides target-pair information, including fold-change, mean expression, adjusted p-values, and feature class.
+
+Slope plots are saved as interactive HTML files and exported as PDFs when Chrome is available.
+
+<img src="../Demo/Integrative_Demo_Results/integrative_demo_slope_plot.png" width="707"/>
+
+## Statistical Analysis {#statistical-analysis}
+
+The statistical analysis evaluates whether inverse-direction target pairs occur more frequently than expected.
+
+Inverse relationships are defined as small RNA–mRNA target pairs with opposite log2 fold-change directions. Direct relationships are defined as target pairs with matching fold-change directions.
+
+For the sign test, both the small RNA and corresponding mRNA must pass the selected adjusted p-value and fold-change thresholds. A one-sided binomial sign test is then performed to test whether inverse-direction target pairs occur more often than expected under equal proportions of inverse and direct relationships.
+
+The statistical analysis table is saved as a CSV file and rendered inside the knitted HTML report.
+
+[View Example Sign Test CSV](../Demo/Integrative_Demo_Results/integrative_demo_sign_test.csv)
+
+## Authors {#authors}
+
+-   **Dr. Taiowa Montgomery** - 05/2021-present - Colorado State University - [taimontgomery](https://github.com/taimontgomery)
+-   **Spencer Kuhn** - 06/2021-present - Colorado State University - [smcguirekuhn](https://github.com/smcguirekuhn)
+-   **Paige Lillibridge** - 2025-present - Colorado State University - [paigelily](https://github.com/paigelily)
